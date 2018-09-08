@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../Shared/Shared.fs" />
+    <Compile Include="SiteLogo.fs" />
+    <Compile Include="Token.fs" />
+    <Compile Include="Router.fs" />
+    <Compile Include="Home.fs" />
+    <Compile Include="Datasets.fs" />
+    <Compile Include="DatasetCreate.fs" />
+    <Compile Include="DatasetDetails.fs" />
+    <Compile Include="Client.fs" />
+  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

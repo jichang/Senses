@@ -1,0 +1,4 @@
+group Migrations
+  FSharp.Core
+  Simple.Migrations
+  Npgsql

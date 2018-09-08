@@ -1,0 +1,40 @@
+group Server
+    storage: none
+    source https://api.nuget.org/v3/index.json
+
+    nuget FSharp.Core
+    nuget Saturn
+    nuget Thoth.Json.Net prerelease
+    nuget Thoth.Json.Giraffe prerelease
+    nuget Npgsql
+
+group Migrations
+    storage: none
+    source https://api.nuget.org/v3/index.json
+
+    nuget FSharp.Core
+    nuget Simple.Migrations
+    nuget Npgsql
+
+group Client
+    storage: none
+    source https://api.nuget.org/v3/index.json
+
+    nuget Fable.Core prerelease
+    nuget Fable.Elmish.Debugger prerelease
+    nuget Fable.Elmish.React prerelease
+    nuget Fable.Elmish.HMR prerelease
+    nuget Fable.Elmish.Browser prerelease
+    nuget Thoth.Json prerelease
+
+    clitool dotnet-fable prerelease
+
+group Build
+    storage: none
+    source https://api.nuget.org/v3/index.json
+
+    nuget FSharp.Core 4.3.4 // https://github.com/fsharp/FAKE/issues/2001
+    nuget Fake.Core.Target
+    nuget Fake.DotNet.Cli
+    nuget Fake.IO.FileSystem
+

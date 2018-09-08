@@ -1,0 +1,42 @@
+.site-logo {
+    margin: 0 auto;
+
+    width: 4rem;
+    height: 4rem;
+}
+
+.site-logo img {
+    display: inline-block;
+    margin: 0 auto;
+}
+
+.form {
+    display: block;
+    margin: 0 auto;
+}
+
+.form--sign {
+    width: 30rem;
+}
+
+.form__field {
+    margin-top: 1rem;
+}
+
+.form__field--submit {
+    margin-top: 1.5rem;
+}
+
+.form__control {
+    display: block;
+}
+
+.form__control select,
+.form__control input {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+
+    width: 100%;
+
+    text-indent: 1rem;
+}
