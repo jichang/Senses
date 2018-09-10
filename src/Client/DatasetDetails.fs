@@ -62,7 +62,18 @@ let view model dispatch =
     else
         match model.dataset with
         | Some dataset ->
+            let resources =
+                div [] (List.map (fun (resource: Resource) -> p [] [ str (resource.id.ToString()) ]) dataset.resources)
+            let tasks =
+                div [] (List.map (fun (task: Task) -> p [] [ str (task.id.ToString()) ]) dataset.tasks)
             div []
-                [ p [] [ str dataset.title ] ]
+                [ p [] [ str dataset.title ]
+                  div []
+                      [ header [ classList [("flex-box", true)]]
+                            [ div [classList [("flex-item", true)]] [ str "Resources" ]
+                              div [classList [("flex-item", true)]] [ str "Tasks" ]]
+                        section []
+                            [ div [] [resources]
+                              div [] [tasks] ] ] ]
         | None ->
             div [] [ str "not found" ]

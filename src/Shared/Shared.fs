@@ -19,6 +19,21 @@ module rec Model =
             Encode.object
                 [ "code", Encode.string errorResponse.code ]
 
+    type CollectionResponse<'t> =
+        { totalCount: int64
+          items: 't list }
+
+        static member Decoder (itemDecoder: Decode.Decoder<'t>) : Decode.Decoder<CollectionResponse<'t>> =
+            Decode.object (fun get ->
+                { totalCount = get.Required.Field "totalCount" Decode.int64
+                  items = get.Required.Field "items" (Decode.list itemDecoder) }
+            )
+
+        static member Encoder (itemEncoder: Encode.Encoder<'t>) (collectionResponse: CollectionResponse<'t>) =
+            Encode.object
+                [ "totalCount", Encode.int64 collectionResponse.totalCount
+                  "items", Encode.list (List.map itemEncoder collectionResponse.items) ]
+
     type Session =
         { token: string }
 
@@ -64,8 +79,8 @@ module rec Model =
         { id: int64
           user: User
           title: string
-          tasks: Task[]
-          resources: Resource[]
+          tasks: Task list
+          resources: Resource list
           status: int }
 
         static member Decoder : Decode.Decoder<Dataset> =
@@ -74,8 +89,8 @@ module rec Model =
                     { id = get.Required.Field "id" Decode.int64
                       user = get.Required.Field "user" User.Decoder
                       title = get.Required.Field "title" Decode.string
-                      tasks = get.Required.Field "tasks" (Decode.array Task.Decoder)
-                      resources = get.Required.Field "resources" (Decode.array Resource.Decoder)
+                      tasks = get.Required.Field "tasks" (Decode.list Task.Decoder)
+                      resources = get.Required.Field "resources" (Decode.list Resource.Decoder)
                       status = get.Required.Field "status" Decode.int }
                 )
 
@@ -84,8 +99,8 @@ module rec Model =
                 [ "id", Encode.int64 dataset.id
                   "user", User.Encoder dataset.user
                   "title", Encode.string dataset.title
-                  "tasks", Encode.array (Array.map Task.Encoder dataset.tasks)
-                  "resources", Encode.array (Array.map Resource.Encoder dataset.resources)
+                  "tasks", Encode.list (List.map Task.Encoder dataset.tasks)
+                  "resources", Encode.list (List.map Resource.Encoder dataset.resources)
                   "status", Encode.int dataset.status ]
 
     type ResourceTypeKey =

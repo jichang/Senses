@@ -13,11 +13,12 @@ open Shared.Model
 type Model =
     { loading: bool
       signing: bool
+      totalCount: int64
       users: User list
       choosedUser: User option }
 
 type Msg =
-    | Init of Result<User list, exn>
+    | Init of Result<CollectionResponse<User>, exn>
     | Choose of User option
     | Submit
     | CreateResponse of Result<User, exn>
@@ -27,6 +28,7 @@ let init () =
     let model =
         { loading = true
           signing = false
+          totalCount = 0L
           users = List.empty
           choosedUser = None }
 
@@ -36,8 +38,9 @@ let init () =
               requestHeaders
                   [ ContentType "application/json" ]]
 
+        let decoder = CollectionResponse.Decoder User.Decoder
         Cmd.ofPromise
-            (fun _ -> fetchAs "/api/users" (Decode.list User.Decoder) defaultProps)
+            (fun _ -> fetchAs "/api/users" decoder defaultProps)
             ()
             (Ok >> Init)
             (Error >> Init)
@@ -45,8 +48,8 @@ let init () =
 
 let update (msg: Msg) (model: Model) =
     match msg with
-    | Init (Ok users) ->
-        { model with loading = false; users = users }, Cmd.none
+    | Init (Ok response) ->
+        { model with loading = false; totalCount = response.totalCount; users = response.items }, Cmd.none
     | Init (Error exn) ->
         { model with loading = false }, Cmd.none
     | Choose user ->

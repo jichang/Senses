@@ -11,16 +11,18 @@ open Thoth.Json
 
 type Model =
     { loading: bool
+      totalCount: int64
       datasets: Dataset list }
 
 type Msg =
-    | Init of Result<Dataset list, exn>
+    | Init of Result<CollectionResponse<Dataset>, exn>
     | Choose of Dataset
     | Create
 
 let init () =
     let model =
         { loading = true
+          totalCount = 0L
           datasets = List.empty }
 
     let session: Result<Session, string> = Token.load ()
@@ -35,7 +37,7 @@ let init () =
                     Authorization authorization ]]
 
         let cmd =
-            let decoder = Decode.list Dataset.Decoder
+            let decoder =(CollectionResponse<Dataset>.Decoder Dataset.Decoder)
             Cmd.ofPromise
                 (fun _ -> fetchAs "/api/datasets" decoder defaultProps)
                 ()                
@@ -47,8 +49,8 @@ let init () =
 
 let update (msg: Msg) (model: Model) =
     match msg with
-    | Init (Ok datasets) ->
-        { model with datasets = datasets; loading = false }, Cmd.none
+    | Init (Ok response) ->
+        { model with totalCount = response.totalCount; datasets = response.items; loading = false }, Cmd.none
     | Init (Error exn) ->
         { model with loading = false }, Cmd.none
     | Choose dataset ->

@@ -13,27 +13,39 @@ module Model =
               "uuid", SqlType.Uuid
               "status", SqlType.Integer ]
 
-    let select () =
+    let select (): CollectionResponse<User> =
+        let columnTypes = Map.add "total_count" SqlType.Bigint usersTable
         let sql =
-            { statement = "SELECT id, uuid, status from senses.users"
+            { statement = "SELECT id, uuid, status, count(*) OVER() AS total_count from senses.users"
               parameters = []
-              columnTypes = usersTable }
+              columnTypes = columnTypes }
         let rows = Database.execute Database.defaultConnection sql
 
-        [ for row in rows do
-            let res = 
-                let idColumn = row.Item "id"
-                let uuidColumn = row.Item "uuid"
-                let statusColumn = row.Item "status"
-                match idColumn, uuidColumn, statusColumn with
-                | Bigint id, Uuid uuid, Integer status ->
-                    Ok { id = id; uuid = uuid; status = status }
-                | _ ->
-                    Error (Exception ("unmatch column value"))
+        match List.isEmpty rows with
+        | true ->
+            { totalCount = 0L; items = [] }
+        | false ->
+            let row = List.head rows
+            match row.Item "total_count" with
+            | Bigint totalCount ->
+                let users =
+                    [ for row in rows do
+                        let res =
+                            let idColumn = row.Item "id"
+                            let uuidColumn = row.Item "uuid"
+                            let statusColumn = row.Item "status"
+                            match idColumn, uuidColumn, statusColumn with
+                            | Bigint id, Uuid uuid, Integer status ->
+                                Ok { id = id; uuid = uuid; status = status }
+                            | _ ->
+                                Error (Exception ("unmatch column value"))
 
-            match res with
-            | Ok user -> yield user
-            | Error err -> printfn "%A" err ]
+                        match res with
+                        | Ok user -> yield user
+                        | Error err -> printfn "%A" err ]
+                { totalCount = totalCount; items = users }
+            | _ ->
+                { totalCount = 0L; items = [] }
 
     let create () =
         let uuid = Guid.NewGuid()
@@ -59,7 +71,7 @@ module Controller =
     open FSharp.Control.Tasks.ContextInsensitive
 
     let indexAction ctx = task {
-        let users: User list = Model.select ()
+        let users: CollectionResponse<User> = Model.select ()
         return! Controller.json ctx users
     }
 

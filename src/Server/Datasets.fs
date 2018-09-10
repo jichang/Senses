@@ -17,27 +17,40 @@ module Model =
               "user_id", SqlType.Bigint
               "status", SqlType.Integer ]
 
-    let select (user: User): Dataset list =
+    let select (user: User): CollectionResponse<Dataset> =
+        let columnTypes =
+            Map.add "total_count" SqlType.Bigint datasetsTable
         let sql =
-            { statement = "SELECT id, title, status FROM senses.datasets WHERE user_id=@user_id"
+            { statement = "SELECT id, title, status, count(*) OVER() AS total_count FROM senses.datasets WHERE user_id=@user_id"
               parameters = [("user_id", Bigint user.id)]
-              columnTypes = datasetsTable }
+              columnTypes = columnTypes }
         let rows = Database.execute Database.defaultConnection sql
 
-        [ for row in rows do
-            let res = 
-                let idColumn = row.Item "id"
-                let titleColumn = row.Item "title"
-                let statusColumn = row.Item "status"
-                match idColumn, titleColumn, statusColumn with
-                | Bigint id, CharacterVaring title, Integer status ->
-                    Ok { id = id; title = title; user = user; tasks = [||]; resources = [||]; status = status}
-                | _ ->
-                    Error (Exception ("unmatch column value"))
+        match List.isEmpty rows with
+        | true ->
+            { totalCount = 0L; items = [] }
+        | false ->
+            let row = List.head rows
+            match row.Item "total_count" with
+            | Bigint totalCount ->
+                let datasets =
+                    [ for row in rows do
+                        let res =
+                            let idColumn = row.Item "id"
+                            let titleColumn = row.Item "title"
+                            let statusColumn = row.Item "status"
+                            match idColumn, titleColumn, statusColumn with
+                            | Bigint id, CharacterVaring title, Integer status ->
+                                Ok { id = id; title = title; user = user; tasks = []; resources = []; status = status}
+                            | _ ->
+                                Error (Exception ("unmatch column value"))
 
-            match res with
-            | Ok dataset -> yield dataset
-            | Error err -> printfn "%A" err ]
+                        match res with
+                        | Ok dataset -> yield dataset
+                        | Error err -> printfn "%A" err ]
+                { totalCount = totalCount; items = datasets }
+            | _ ->
+                { totalCount = 0L; items = [] }
 
     let create (title: string) (user: User) : Dataset list =
         let sql =
@@ -51,7 +64,7 @@ module Model =
                 let idColumn = row.Item "id"
                 match idColumn with
                 | Bigint id ->
-                    Ok { id = id; title = title; user = user; tasks = [||]; resources = [||]; status = 0}
+                    Ok { id = id; title = title; user = user; tasks = []; resources = []; status = 0}
                 | _ ->
                     Error (Exception ("unmatch column type"))
             match res with
@@ -65,7 +78,7 @@ module Controller =
         let sub = ctx.User.FindFirst ClaimTypes.NameIdentifier
         match Decode.fromString User.Decoder sub.Value with
         | Ok user ->
-            let users: Dataset list = Model.select user
+            let users: CollectionResponse<Dataset> = Model.select user
             return! Controller.json ctx users
         | Error err ->
             printfn "error parsing claim: %A" err
