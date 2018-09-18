@@ -5,7 +5,6 @@ open Microsoft.Extensions.DependencyInjection
 open Saturn
 open Giraffe
 open Config
-open Thoth.Json.Net
 
 open Giraffe.Serialization
 
@@ -19,6 +18,8 @@ let apiRouter = router {
     pipe_through (Auth.requireAuthentication JWT)
 
     forward "/datasets" Datasets.controller
+    forward "/tasktypes" TaskTypes.controller
+    forward "/resourcetypes" ResourceTypes.controller
 }
 
 let webApp = router {

@@ -1,4 +1,4 @@
-module Datasets
+module Dataset
 
 open System
 open Shared.Model

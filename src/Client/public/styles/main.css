@@ -48,3 +48,9 @@
 .flex-item {
     flex: 1;
 }
+
+.text--placeholder {
+    padding: 5rem 0;
+
+    text-align: center;
+}

@@ -7,7 +7,9 @@
     <Compile Include="SiteLogo.fs" />
     <Compile Include="Token.fs" />
     <Compile Include="Router.fs" />
+    <Compile Include="Sign.fs" />
     <Compile Include="Home.fs" />
+    <Compile Include="TaskCreate.fs" />
     <Compile Include="Datasets.fs" />
     <Compile Include="DatasetCreate.fs" />
     <Compile Include="DatasetDetails.fs" />

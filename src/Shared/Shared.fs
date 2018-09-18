@@ -9,30 +9,30 @@ open Thoth.Json.Net
 open System
 
 module rec Model =
-    type ErrorResponse =
+    type ApiError =
         { code: string }
 
-        static member Decoder : Decode.Decoder<ErrorResponse> =
+        static member Decoder : Decode.Decoder<ApiError> =
             Decode.object (fun get -> { code = get.Required.Field "code" Decode.string } )
 
-        static member Encoder (errorResponse : ErrorResponse) =
+        static member Encoder (errorResponse : ApiError) =
             Encode.object
                 [ "code", Encode.string errorResponse.code ]
 
-    type CollectionResponse<'t> =
+    type ModelCollection<'t> =
         { totalCount: int64
           items: 't list }
 
-        static member Decoder (itemDecoder: Decode.Decoder<'t>) : Decode.Decoder<CollectionResponse<'t>> =
+        static member Decoder (itemDecoder: Decode.Decoder<'t>) : Decode.Decoder<ModelCollection<'t>> =
             Decode.object (fun get ->
                 { totalCount = get.Required.Field "totalCount" Decode.int64
                   items = get.Required.Field "items" (Decode.list itemDecoder) }
             )
 
-        static member Encoder (itemEncoder: Encode.Encoder<'t>) (collectionResponse: CollectionResponse<'t>) =
+        static member Encoder (itemEncoder: Encode.Encoder<'t>) (modelCollection: ModelCollection<'t>) =
             Encode.object
-                [ "totalCount", Encode.int64 collectionResponse.totalCount
-                  "items", Encode.list (List.map itemEncoder collectionResponse.items) ]
+                [ "totalCount", Encode.int64 modelCollection.totalCount
+                  "items", Encode.list (List.map itemEncoder modelCollection.items) ]
 
     type Session =
         { token: string }
@@ -79,8 +79,8 @@ module rec Model =
         { id: int64
           user: User
           title: string
-          tasks: Task list
-          resources: Resource list
+          tasks: ModelCollection<Task>
+          resources: ModelCollection<Resource>
           status: int }
 
         static member Decoder : Decode.Decoder<Dataset> =
@@ -89,8 +89,8 @@ module rec Model =
                     { id = get.Required.Field "id" Decode.int64
                       user = get.Required.Field "user" User.Decoder
                       title = get.Required.Field "title" Decode.string
-                      tasks = get.Required.Field "tasks" (Decode.list Task.Decoder)
-                      resources = get.Required.Field "resources" (Decode.list Resource.Decoder)
+                      tasks = get.Required.Field "tasks" (ModelCollection.Decoder Task.Decoder)
+                      resources = get.Required.Field "resources" (ModelCollection.Decoder Resource.Decoder)
                       status = get.Required.Field "status" Decode.int }
                 )
 
@@ -99,8 +99,8 @@ module rec Model =
                 [ "id", Encode.int64 dataset.id
                   "user", User.Encoder dataset.user
                   "title", Encode.string dataset.title
-                  "tasks", Encode.list (List.map Task.Encoder dataset.tasks)
-                  "resources", Encode.list (List.map Resource.Encoder dataset.resources)
+                  "tasks", ModelCollection.Encoder Task.Encoder dataset.tasks
+                  "resources", ModelCollection.Encoder Resource.Encoder dataset.resources
                   "status", Encode.int dataset.status ]
 
     type ResourceTypeKey =
@@ -112,16 +112,16 @@ module rec Model =
             Decode.string
             |> Decode.andThen
                 (function
-                | "Image" -> Decode.succeed ResourceTypeKey.Image
-                | "Text" -> Decode.succeed ResourceTypeKey.Text
-                | "Video" -> Decode.succeed ResourceTypeKey.Video
+                | "image" -> Decode.succeed ResourceTypeKey.Image
+                | "text" -> Decode.succeed ResourceTypeKey.Text
+                | "video" -> Decode.succeed ResourceTypeKey.Video
                 | invalid -> Decode.fail (sprintf "Failed to decode `%s` it's an invalide case for `ResourceTypeKey`" invalid) )
 
         static member Encoder (resourceTypeKey : ResourceTypeKey) =
             match resourceTypeKey with
-            | Image -> "Image"
-            | Text -> "Text"
-            | Video -> "Video"
+            | Image -> "image"
+            | Text -> "text"
+            | Video -> "video"
             |> Encode.string
 
     type ResourceType =
@@ -150,12 +150,12 @@ module rec Model =
             Decode.string
             |> Decode.andThen
                 (function
-                | "Label" -> Decode.succeed TaskTypeKey.Label
+                | "label" -> Decode.succeed TaskTypeKey.Label
                 | invalid -> Decode.fail (sprintf "Failed to decode `%s` it's an invalide case for `TaskTypeKey`" invalid) )
 
         static member Encoder (taskTypeKey : TaskTypeKey) =
             match taskTypeKey with
-            | Label -> "Label"
+            | Label -> "label"
             |> Encode.string
 
     type TaskType =
@@ -302,3 +302,26 @@ module rec Model =
                 [ "id", Encode.int64 resource.id
                   "content", ResourceContent.Encoder resource.content
                   "status", Encode.int resource.status ]
+
+
+    type Label =
+        { id: int
+          color: string
+          title: string 
+          status: int }
+    
+        static member Decoder : Decode.Decoder<Label> =
+            Decode.object
+                (fun get ->
+                    { id = get.Required.Field "id" Decode.int
+                      color = get.Required.Field "color" Decode.string
+                      title = get.Required.Field "title" Decode.string
+                      status = get.Required.Field "status" Decode.int }
+                )
+
+        static member Encoder (label : Label) =
+            Encode.object
+                [ "id", Encode.int label.id
+                  "color", Encode.string label.color
+                  "title", Encode.string label.title
+                  "status", Encode.int label.status ]

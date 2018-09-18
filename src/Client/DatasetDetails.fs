@@ -3,6 +3,7 @@ module DatasetDetails
 open Shared.Model
 open Elmish
 open Fable.Helpers.React
+open Fable.Helpers.React.Props
 open Fable.PowerPack.Fetch
 
 type Model =
@@ -62,18 +63,41 @@ let view model dispatch =
     else
         match model.dataset with
         | Some dataset ->
-            let resources =
-                div [] (List.map (fun (resource: Resource) -> p [] [ str (resource.id.ToString()) ]) dataset.resources)
             let tasks =
-                div [] (List.map (fun (task: Task) -> p [] [ str (task.id.ToString()) ]) dataset.tasks)
+                if List.isEmpty dataset.tasks.items then
+                    tbody [] [tr [ classList [("text--placeholder", true)]] [ td [ ColSpan 2.0 ] [str "No tasks" ]]]
+                else
+                    let rows =
+                        List.map (fun (task: Task) -> tr [] [ td [] [str (task.id.ToString())] ]) dataset.tasks.items
+                    tbody [] rows
+
+            let resources =
+                if List.isEmpty dataset.resources.items then
+                    tbody [] [tr [ classList [("text--placeholder", true)]] [ td [ ColSpan 2.0 ] [str "No resources" ]]]
+                else
+                    let rows =
+                        List.map (fun (resource: Resource) -> tr [] [ td [] [str (resource.id.ToString())] ]) dataset.resources.items
+                    tbody [] rows
+
             div []
                 [ p [] [ str dataset.title ]
                   div []
-                      [ header [ classList [("flex-box", true)]]
-                            [ div [classList [("flex-item", true)]] [ str "Resources" ]
-                              div [classList [("flex-item", true)]] [ str "Tasks" ]]
-                        section []
-                            [ div [] [resources]
-                              div [] [tasks] ] ] ]
+                      [
+                        section [] [
+                          header [ classList [("flex-box", true)] ] [ p [ classList [("flex-item", true)] ] [str "Tasks"]; button [] [str "Create"] ]
+                          table [] [
+                              thead [] [
+                                  tr [] [
+                                      th [] [ str "Id" ]
+                                      th [] [ str "Title" ] ] ]
+                              tasks]]
+                        section [] [
+                          header [ classList [("flex-box", true)] ] [ p [ classList [("flex-item", true)] ] [str "Resources"]; button [] [str "Create"] ]
+                          table [] [
+                              thead [] [
+                                  tr [] [
+                                      th [] [ str "Id" ]
+                                      th [] [ str "Title" ] ] ]
+                              resources] ] ] ]
         | None ->
             div [] [ str "not found" ]

@@ -1,133 +1,146 @@
 module Home
 
 open Elmish
-open Elmish.Browser.Navigation
 open Fable.Import.React
 open Fable.Helpers.React
 open Fable.Helpers.React.Props
-open Fable.PowerPack.Fetch
 
 open Thoth.Json
 open Shared.Model
+open Fable.PowerPack.Fetch
+
+type TabKey =
+    | Datasets
+    | Tasks
+    | Labels
+
+type TabState<'t> =
+    { loading: bool
+      collection: ModelCollection<'t> }
 
 type Model =
-    { loading: bool
-      signing: bool
-      totalCount: int64
-      users: User list
-      choosedUser: User option }
+    { session: Session
+      datasetsTab: TabState<Dataset>
+      tasksTab: TabState<Task>
+      labelsTab: TabState<Label>
+      activeTabKey: TabKey }
 
 type Msg =
-    | Init of Result<CollectionResponse<User>, exn>
-    | Choose of User option
-    | Submit
-    | CreateResponse of Result<User, exn>
-    | LoginResponse of Result<Session, exn>
+    | DatasetsInit of Result<ModelCollection<Dataset>, exn>
+    | TasksInit of Result<ModelCollection<Task>, exn>
+    | LabelsInit of Result<ModelCollection<Label>, exn>
+    | ChangeTab of TabKey
 
-let init () =
+let init (session: Session) =
     let model =
-        { loading = true
-          signing = false
-          totalCount = 0L
-          users = List.empty
-          choosedUser = None }
+        { session = session
+          datasetsTab =
+              { loading = true
+                collection = { totalCount = 0L; items = [] } }
+          tasksTab =
+              { loading = false
+                collection = { totalCount = 0L; items = [] } }
+          labelsTab =
+              { loading = false
+                collection = { totalCount = 0L; items = [] } }
+          activeTabKey = TabKey.Datasets }
 
     let cmd =
+        let authorization = sprintf "Bearer %s" session.token
         let defaultProps =
             [ RequestProperties.Method HttpMethod.GET
               requestHeaders
-                  [ ContentType "application/json" ]]
+                  [ ContentType "application/json"
+                    Authorization authorization ]]
 
-        let decoder = CollectionResponse.Decoder User.Decoder
+        let decoder = ModelCollection.Decoder Dataset.Decoder
+
         Cmd.ofPromise
-            (fun _ -> fetchAs "/api/users" decoder defaultProps)
+            (fun _ -> fetchAs "/api/datasets" decoder defaultProps)
             ()
-            (Ok >> Init)
-            (Error >> Init)
+            (Ok >> DatasetsInit)
+            (Error >> DatasetsInit)
+
     model, cmd
 
 let update (msg: Msg) (model: Model) =
     match msg with
-    | Init (Ok response) ->
-        { model with loading = false; totalCount = response.totalCount; users = response.items }, Cmd.none
-    | Init (Error exn) ->
-        { model with loading = false }, Cmd.none
-    | Choose user ->
-        { model with choosedUser = user }, Cmd.none
-    | Submit ->
-        match model.choosedUser with
-        | Some user ->
-            let body = Encode.toString 0 (User.Encoder user)
-            let defaultProps =
-                [ RequestProperties.Method HttpMethod.POST
-                  requestHeaders [ContentType "application/json"]
-                  RequestProperties.Body <| unbox body ]
-            let cmd =
-                Cmd.ofPromise
-                    (fun _ -> fetchAs "/api/sessions" Session.Decoder defaultProps)
-                    ()
-                    (Ok >> LoginResponse)
-                    (Error >> LoginResponse)
-            { model with signing = true }, cmd
-        | None ->
-            let defaultProps =
-                [ RequestProperties.Method HttpMethod.POST
-                  requestHeaders [ContentType "application/json"] ]
-            let cmd =
-                Cmd.ofPromise
-                    (fun _ -> fetchAs "/api/users" User.Decoder defaultProps)
-                    ()
-                    (Ok >> CreateResponse)
-                    (Error >> CreateResponse)
-            { model with signing = true }, cmd
-    | CreateResponse (Ok user) ->
-        let cmd = Navigation.newUrl "/datasets"
-        { model with users = List.append model.users [user]; signing = false }, cmd
-    | CreateResponse (Error exn) ->
-        { model with signing = false }, Cmd.none
-    | LoginResponse (Ok session) ->
-        Token.save session
-        { model with signing = false }, Navigation.newUrl "/datasets"
-    | LoginResponse (Error exn) ->
-        { model with signing = false }, Cmd.none
-
+    | DatasetsInit  (Ok datasets) ->
+        let datasetsTab = { model.datasetsTab with collection = datasets; loading = false }
+        { model with datasetsTab = datasetsTab }, Cmd.none
+    | DatasetsInit  (Error error) ->
+        let datasetsTab = { model.datasetsTab with loading = false }
+        { model with datasetsTab = datasetsTab }, Cmd.none
+    | TasksInit  (Ok tasks) ->
+        let tasksTab = { model.tasksTab with collection = tasks; loading = false }
+        { model with tasksTab = tasksTab }, Cmd.none
+    | TasksInit  (Error error) ->
+        let datasetsTab = { model.datasetsTab with loading = false }
+        { model with datasetsTab = datasetsTab }, Cmd.none
+    | LabelsInit  (Ok labels) ->
+        let labelsTab = { model.labelsTab with collection = labels; loading = false }
+        { model with labelsTab = labelsTab }, Cmd.none
+    | LabelsInit  (Error error) ->
+        let labelsTab = { model.labelsTab with loading = false }
+        { model with labelsTab = labelsTab }, Cmd.none
+    | ChangeTab tabKey ->
+        { model with activeTabKey = tabKey }, Cmd.none
 
 let view (model: Model) (dispatch: Msg -> unit) =
-    if model.loading then
-        div [] [ str "loading" ]
-    else
-        let options =
-            model.users
-            |> Seq.map (fun user -> option [ Value (user.id.ToString()) ] [ str (user.uuid.ToString()) ] )
+    let tableRows =
+        match model.activeTabKey with
+        | TabKey.Datasets ->
+            let createRow (dataset: Dataset) =
+                tr []
+                    [ td [] [ p [] [ str (dataset.id.ToString()) ] ]
+                      td [] [ p [] [ str dataset.title ] ]
+                      td [] [ p [] [ str (dataset.status.ToString()) ] ] ]
 
-        let defaultOption =
-            option [ Value "" ] [ str "New Account" ]
+            if model.datasetsTab.loading then
+                [ tr [] [ td [] [ p [] [ str "loading" ] ] ] ]
+            else
+                List.map createRow model.datasetsTab.collection.items
+        | TabKey.Tasks ->
+            if model.tasksTab.loading then
+                [ tr [] [ td [] [ p [] [ str "loading" ] ] ] ]
+            else
+                List.map (fun task -> tr [] [] ) model.tasksTab.collection.items
+        | TabKey.Labels ->
+            if model.labelsTab.loading then
+                [ tr [] [ td [] [ p [] [ str "loading" ] ] ] ]
+            else
+                List.map (fun task -> tr [] [] ) model.labelsTab.collection.items
 
-        let allOptions = Seq.append [defaultOption] options |> List.ofSeq
+    let tableHead =
+        match model.activeTabKey with
+        | TabKey.Datasets ->
+            thead [] [
+                tr [] [
+                    td [] [str "Id"]
+                    td [] [str "Title"]
+                    td [] [str "Status"] ] ]
+        | TabKey.Tasks ->
+            thead [] [
+                tr [] [
+                    td [] [str "Id"]
+                    td [] [str "Type"]
+                    td [] [str "Status"] ] ]
+        | TabKey.Labels ->
+            thead [] [
+                tr [] [
+                    td [] [str "Id"]
+                    td [] [str "Title"]
+                    td [] [str "Color"]
+                    td [] [str "Status"] ] ]
 
-        let chooseUser (evt: FormEvent) dispatch =
-            let userId = evt.Value
-            let msg =
-                match userId with
-                | "" ->
-                    Choose None
-                | _ ->
-                    let user = Seq.tryFind (fun (user: User) -> user.id.ToString() = userId) model.users
-                    Choose user
-            dispatch msg
-
-        let submit (evt: FormEvent) dispatch =
-            evt.preventDefault()
-
-            dispatch Submit
-
-        let signForm =
-            form [ classList [("form", true); ("form--sign", true)]; OnSubmit (fun evt -> submit evt dispatch ) ]
-                [ div [ classList [("form__field", true)] ]
-                    [ label [] [str "Choose account"]
-                      div [ classList [("form__control", true) ] ] [ select [ OnChange (fun evt -> chooseUser evt dispatch ); DefaultValue ""] allOptions ] ]
-
-                  div [ classList [("form__field", true); ("form__field--submit", true)] ]
-                    [ div [] [ button [ Disabled model.signing ] [ str "Start" ] ] ] ]
-
-        div [] [ SiteLogo.logo; signForm ]
+    div [] [
+        header [] [
+            nav [] [
+                ul [] [
+                    li [ OnClick (fun _ -> dispatch (ChangeTab TabKey.Datasets)) ] [ str "Datasets" ]
+                    li [ OnClick (fun _ -> dispatch (ChangeTab TabKey.Tasks))] [ str "Tasks" ]
+                    li [ OnClick (fun _ -> dispatch (ChangeTab TabKey.Labels))] [ str "Labels" ] ]]]
+        section [] [
+            table [] [
+                tableHead
+                tbody [] tableRows ] ] ]

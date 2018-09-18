@@ -11,14 +11,17 @@ open Shared.Model
 open Router
 
 type Model =
-    { page: Page
+    { session: Result<Session, string>
+      page: Page
       user: User option
+      sign: Sign.Model Option
       home: Home.Model option
       datasets: Datasets.Model option
       datasetCreate: DatasetCreate.Model option
       datasetDetails: DatasetDetails.Model option }
 
 type Msg =
+    | Sign of Sign.Msg
     | Home of Home.Msg
     | Datasets of Datasets.Msg
     | DatasetCreate of DatasetCreate.Msg
@@ -33,8 +36,12 @@ let urlUpdate (result: Page option) (model: Model) : Model * Cmd<Msg> =
             | Some _ ->
                 { model with page = page }, Cmd.none
             | None ->
-                let homeModel, homeCmd = Home.init ()
-                { model with home = Some homeModel; page = page }, Cmd.map Home homeCmd
+                match model.session with
+                | Ok session ->
+                    let homeModel, homeCmd = Home.init session
+                    { model with home = Some homeModel; page = page }, Cmd.map Home homeCmd
+                | Error error ->
+                    { model with page = page}, Cmd.none
         | Page.Datasets ->
             match model.datasets with
             | Some _ ->
@@ -90,38 +97,50 @@ let urlUpdate (result: Page option) (model: Model) : Model * Cmd<Msg> =
         model, Cmd.none
 
 let init (page: Page option) : Model * Cmd<Msg> =
+    let session: Result<Session, string>  = Token.load ()
+
     let defaultModel =
-        { page = Page.Home
+        { session = session
           user = None
+          page = Page.Home
+          sign = None
           home = None
           datasets = None
           datasetCreate = None
           datasetDetails = None }
 
-    let model, cmd = 
-        match page with
-        | Some page ->
+    let model, cmd =
+        match session with
+        | Ok session ->
             match page with
-            | Page.Home ->
-                let (homeModel, homeCmd) = Home.init ()
-                { defaultModel with home = Some homeModel }, Cmd.map Home homeCmd
-            | Page.Datasets ->
-                let (datasetsModel, datasetsCmd) = Datasets.init ()
-                { defaultModel with datasets = Some datasetsModel }, Cmd.map Datasets datasetsCmd
-            | Page.DatasetCreate ->
-                let (datasetCreateModel, datasetCreateCmd) = DatasetCreate.init ()
-                { defaultModel with datasetCreate = Some datasetCreateModel }, Cmd.map Datasets datasetCreateCmd
-            | Page.DatasetDetails datasetId ->
-                let initData = DatasetDetails.InitData.DatasetId datasetId
-                let (datasetDetailsModel, datasetDetailsCmd) = DatasetDetails.init initData
-                { defaultModel with datasetDetails = Some datasetDetailsModel }, Cmd.map DatasetDetails datasetDetailsCmd
-        | None ->
-            defaultModel, Cmd.none
+            | Some page ->
+                match page with
+                | Page.Home ->
+                    let (homeModel, homeCmd) = Home.init session
+                    { defaultModel with home = Some homeModel }, Cmd.map Msg.Home homeCmd
+                | Page.Datasets ->
+                    let (datasetsModel, datasetsCmd) = Datasets.init ()
+                    { defaultModel with datasets = Some datasetsModel }, Cmd.map Msg.Datasets datasetsCmd
+                | Page.DatasetCreate ->
+                    let (datasetCreateModel, datasetCreateCmd) = DatasetCreate.init ()
+                    { defaultModel with datasetCreate = Some datasetCreateModel }, Cmd.map Msg.Datasets datasetCreateCmd
+                | Page.DatasetDetails datasetId ->
+                    let initData = DatasetDetails.InitData.DatasetId datasetId
+                    let (datasetDetailsModel, datasetDetailsCmd) = DatasetDetails.init initData
+                    { defaultModel with datasetDetails = Some datasetDetailsModel }, Cmd.map Msg.DatasetDetails datasetDetailsCmd
+            | None ->
+                defaultModel, Cmd.none
+        | Error error ->
+            let (signModel, signCmd) = Sign.init ()
+            { defaultModel with sign = Some signModel }, Cmd.map Msg.Sign signCmd
  
     model, cmd
 
 let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
     match msg with
+    | Sign signMsg ->
+        let (signModel, signCmd) = Sign.update signMsg model.sign.Value
+        { model with sign = Some signModel }, Cmd.map Sign signCmd
     | Home homeMsg ->
         let (homeModel, homeCmd) = Home.update homeMsg model.home.Value
         { model with home = Some homeModel }, Cmd.map Home homeCmd
@@ -137,15 +156,23 @@ let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
 
 let view (model : Model) (dispatch : Msg -> unit) =
     let pageView =
-        match model.page with
-        | Page.Home ->
-            Home.view model.home.Value (dispatch << Msg.Home)
-        | Page.Datasets ->
-            Datasets.view model.datasets.Value (dispatch << Msg.Datasets)
-        | Page.DatasetCreate ->
-            DatasetCreate.view model.datasetCreate.Value (dispatch << Msg.DatasetCreate)
-        | Page.DatasetDetails datasetId ->
-            DatasetDetails.view model.datasetDetails.Value (dispatch << Msg.DatasetDetails)
+        match model.session with
+        | Ok _ ->
+            match model.page with
+            | Page.Home ->
+                Home.view model.home.Value (dispatch << Msg.Home)
+            | Page.Datasets ->
+                Datasets.view model.datasets.Value (dispatch << Msg.Datasets)
+            | Page.DatasetCreate ->
+                DatasetCreate.view model.datasetCreate.Value (dispatch << Msg.DatasetCreate)
+            | Page.DatasetDetails datasetId ->
+                DatasetDetails.view model.datasetDetails.Value (dispatch << Msg.DatasetDetails)
+        | Error _ ->
+            match model.sign with
+            | Some signModel ->
+                div [] [ Sign.view signModel (dispatch << Msg.Sign) ]
+            | None ->
+                div [] [ str "Refresh Page" ]
 
     div []
         [ pageView ]

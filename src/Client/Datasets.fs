@@ -15,7 +15,7 @@ type Model =
       datasets: Dataset list }
 
 type Msg =
-    | Init of Result<CollectionResponse<Dataset>, exn>
+    | Init of Result<ModelCollection<Dataset>, exn>
     | Choose of Dataset
     | Create
 
@@ -37,7 +37,7 @@ let init () =
                     Authorization authorization ]]
 
         let cmd =
-            let decoder =(CollectionResponse<Dataset>.Decoder Dataset.Decoder)
+            let decoder =(ModelCollection<Dataset>.Decoder Dataset.Decoder)
             Cmd.ofPromise
                 (fun _ -> fetchAs "/api/datasets" decoder defaultProps)
                 ()                

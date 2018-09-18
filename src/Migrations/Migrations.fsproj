@@ -19,6 +19,7 @@
     <Compile Include="20180721193206_CeateImagesTable.fs" />
     <Compile Include="20180721193506_CeateTextTable.fs" />
     <Compile Include="20180721194106_CeateVideosTable.fs" />
+    <Compile Include="20180918075012_CreateLabelsTable.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />

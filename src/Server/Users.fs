@@ -13,7 +13,7 @@ module Model =
               "uuid", SqlType.Uuid
               "status", SqlType.Integer ]
 
-    let select (): CollectionResponse<User> =
+    let select (): ModelCollection<User> =
         let columnTypes = Map.add "total_count" SqlType.Bigint usersTable
         let sql =
             { statement = "SELECT id, uuid, status, count(*) OVER() AS total_count from senses.users"
@@ -71,7 +71,7 @@ module Controller =
     open FSharp.Control.Tasks.ContextInsensitive
 
     let indexAction ctx = task {
-        let users: CollectionResponse<User> = Model.select ()
+        let users: ModelCollection<User> = Model.select ()
         return! Controller.json ctx users
     }
 
