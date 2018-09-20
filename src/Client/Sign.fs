@@ -81,13 +81,12 @@ let update (msg: Msg) (model: Model) =
                     (Error >> CreateResponse)
             { model with signing = true }, cmd
     | CreateResponse (Ok user) ->
-        let cmd = Navigation.newUrl "/datasets"
+        let cmd = Navigation.newUrl "/"
         { model with users = List.append model.users [user]; signing = false }, cmd
     | CreateResponse (Error exn) ->
         { model with signing = false }, Cmd.none
     | LoginResponse (Ok session) ->
-        Token.save session
-        { model with signing = false }, Cmd.none
+        { model with signing = false }, Navigation.newUrl "/"
     | LoginResponse (Error exn) ->
         { model with signing = false }, Cmd.none
 

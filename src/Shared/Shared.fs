@@ -303,6 +303,19 @@ module rec Model =
                   "content", ResourceContent.Encoder resource.content
                   "status", Encode.int resource.status ]
 
+    type LabelCreateParams =
+        { color: string
+          title: string }
+
+        static member Decoder : Decode.Decoder<LabelCreateParams> =
+            Decode.object (fun get ->
+                { color = get.Required.Field "color" Decode.string
+                  title = get.Required.Field "title" Decode.string } )
+
+        static member Encoder (datasetCreateParams: LabelCreateParams) =
+            Encode.object
+                [ "color", Encode.string datasetCreateParams.color
+                  "title", Encode.string datasetCreateParams.title ]
 
     type Label =
         { id: int

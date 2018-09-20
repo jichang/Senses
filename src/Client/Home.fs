@@ -84,7 +84,47 @@ let update (msg: Msg) (model: Model) =
         let labelsTab = { model.labelsTab with loading = false }
         { model with labelsTab = labelsTab }, Cmd.none
     | ChangeTab tabKey ->
-        { model with activeTabKey = tabKey }, Cmd.none
+        let authorization = sprintf "Bearer %s" model.session.token
+        let defaultProps =
+            [ RequestProperties.Method HttpMethod.GET
+              requestHeaders
+                  [ ContentType "application/json"
+                    Authorization authorization ]]
+
+        let cmd =
+            match tabKey with
+            | TabKey.Datasets ->
+                if model.datasetsTab.loading then
+                    Cmd.none
+                else
+                    let decoder = ModelCollection.Decoder Dataset.Decoder
+                    Cmd.ofPromise
+                        (fun _ -> fetchAs "/api/datasets" decoder defaultProps)
+                        ()
+                        (Ok >> DatasetsInit)
+                        (Error >> DatasetsInit)
+            | TabKey.Tasks ->
+                if model.tasksTab.loading then
+                    Cmd.none
+                else
+                    let decoder = ModelCollection.Decoder Task.Decoder
+                    Cmd.ofPromise
+                        (fun _ -> fetchAs "/api/tasks" decoder defaultProps)
+                        ()
+                        (Ok >> TasksInit)
+                        (Error >> TasksInit)
+            | TabKey.Labels ->
+                if model.labelsTab.loading then
+                    Cmd.none
+                else
+                    let decoder = ModelCollection.Decoder Label.Decoder
+                    Cmd.ofPromise
+                        (fun _ -> fetchAs "/api/labels" decoder defaultProps)
+                        ()
+                        (Ok >> LabelsInit)
+                        (Error >> LabelsInit)
+
+        { model with activeTabKey = tabKey }, cmd
 
 let view (model: Model) (dispatch: Msg -> unit) =
     let tableRows =

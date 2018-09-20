@@ -20,6 +20,7 @@ let apiRouter = router {
     forward "/datasets" Datasets.controller
     forward "/tasktypes" TaskTypes.controller
     forward "/resourcetypes" ResourceTypes.controller
+    forward "/labels" Labels.controller
 }
 
 let webApp = router {

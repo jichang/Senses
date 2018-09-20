@@ -13,7 +13,6 @@ open Router
 type Model =
     { session: Result<Session, string>
       page: Page
-      user: User option
       sign: Sign.Model Option
       home: Home.Model option
       datasets: Datasets.Model option
@@ -31,8 +30,15 @@ let urlUpdate (result: Page option) (model: Model) : Model * Cmd<Msg> =
     match result with
     | Some page ->
         match page with
+        | Page.Sign ->
+            match model.sign with
+            | Some _ ->
+                { model with page = page }, Cmd.none
+            | None ->
+                let signModel, signCmd = Sign.init ()
+                { model with sign = Some signModel; page = page }, Cmd.map Sign signCmd
         | Page.Home ->
-            match model.user with
+            match model.home with
             | Some _ ->
                 { model with page = page }, Cmd.none
             | None ->
@@ -94,14 +100,13 @@ let urlUpdate (result: Page option) (model: Model) : Model * Cmd<Msg> =
                 let (datasetDetailsModel, datasetDetailsCmd) = DatasetDetails.init initData
                 { model with datasetDetails = Some datasetDetailsModel; page = page }, Cmd.map DatasetDetails datasetDetailsCmd
     | None ->
-        model, Cmd.none
+        model, Navigation.newUrl "/"
 
 let init (page: Page option) : Model * Cmd<Msg> =
     let session: Result<Session, string>  = Token.load ()
 
     let defaultModel =
         { session = session
-          user = None
           page = Page.Home
           sign = None
           home = None
@@ -115,6 +120,8 @@ let init (page: Page option) : Model * Cmd<Msg> =
             match page with
             | Some page ->
                 match page with
+                | Page.Sign ->
+                    defaultModel, Cmd.none
                 | Page.Home ->
                     let (homeModel, homeCmd) = Home.init session
                     { defaultModel with home = Some homeModel }, Cmd.map Msg.Home homeCmd
@@ -129,10 +136,18 @@ let init (page: Page option) : Model * Cmd<Msg> =
                     let (datasetDetailsModel, datasetDetailsCmd) = DatasetDetails.init initData
                     { defaultModel with datasetDetails = Some datasetDetailsModel }, Cmd.map Msg.DatasetDetails datasetDetailsCmd
             | None ->
-                defaultModel, Cmd.none
+                defaultModel, Navigation.newUrl "/sign"
         | Error error ->
-            let (signModel, signCmd) = Sign.init ()
-            { defaultModel with sign = Some signModel }, Cmd.map Msg.Sign signCmd
+            match page with
+            | Some page ->
+                match page with
+                | Page.Sign ->
+                    let (signModel, signCmd) = Sign.init ()
+                    { defaultModel with sign = Some signModel }, Cmd.map Msg.Sign signCmd
+                | _ ->
+                    defaultModel, Navigation.newUrl "/sign"
+            | _ ->
+                defaultModel, Navigation.newUrl "/sign"
  
     model, cmd
 
@@ -140,7 +155,12 @@ let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
     match msg with
     | Sign signMsg ->
         let (signModel, signCmd) = Sign.update signMsg model.sign.Value
-        { model with sign = Some signModel }, Cmd.map Sign signCmd
+        match signMsg with
+        | Sign.Msg.LoginResponse (Ok session) ->
+            Token.save session
+            { model with sign = Some signModel; session = (Ok session) }, Cmd.map Sign signCmd
+        | _ ->
+            { model with sign = Some signModel }, Cmd.map Sign signCmd
     | Home homeMsg ->
         let (homeModel, homeCmd) = Home.update homeMsg model.home.Value
         { model with home = Some homeModel }, Cmd.map Home homeCmd
@@ -159,6 +179,8 @@ let view (model : Model) (dispatch : Msg -> unit) =
         match model.session with
         | Ok _ ->
             match model.page with
+            | Page.Sign ->
+                Sign.view model.sign.Value (dispatch << Msg.Sign)
             | Page.Home ->
                 Home.view model.home.Value (dispatch << Msg.Home)
             | Page.Datasets ->
