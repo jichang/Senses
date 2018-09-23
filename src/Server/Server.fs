@@ -17,10 +17,11 @@ let pageHandler =
 let apiRouter = router {
     pipe_through (Auth.requireAuthentication JWT)
 
+    forward "/labels" Labels.controller
     forward "/datasets" Datasets.controller
+    forward "/tasks" Tasks.controller
     forward "/tasktypes" TaskTypes.controller
     forward "/resourcetypes" ResourceTypes.controller
-    forward "/labels" Labels.controller
 }
 
 let webApp = router {

@@ -1,3 +1,18 @@
+.app {
+    display: flex;
+
+    min-height: 100vh;
+}
+
+.app-sidebar {
+    background-color: #f0f0f0;
+}
+
+.app-main {
+    flex: 1;
+    padding: 1rem;
+}
+
 .site-logo {
     margin: 0 auto;
 
@@ -51,6 +66,17 @@
 
 .text--placeholder {
     padding: 5rem 0;
+
+    text-align: center;
+}
+
+.menu {
+    padding: 0;
+    list-style: none;
+}
+
+.menu-item {
+    padding: 0.5rem 1rem;
 
     text-align: center;
 }

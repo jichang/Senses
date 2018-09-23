@@ -10,6 +10,10 @@ module Router
         | Datasets
         | DatasetCreate
         | DatasetDetails of int64
+        | Tasks
+        | Labels
+        | LabelCreate
+        | LabelDetails of int32
 
     let pageParser: Parser<Page->Page, Page>  =
         oneOf
@@ -17,4 +21,8 @@ module Router
               map Sign (s "sign")
               map Datasets (s "datasets")
               map DatasetCreate (s "datasets" </> s "create")
-              map DatasetDetails (s "datasets" </> i64) ]
+              map DatasetDetails (s "datasets" </> i64)
+              map Datasets (s "tasks")
+              map Labels (s "labels")
+              map LabelCreate (s "labels" </> s "create")
+              map LabelDetails (s "labels" </> i32) ]

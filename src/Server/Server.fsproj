@@ -10,7 +10,6 @@
     <Compile Include="Users.fs" />
     <Compile Include="Session.fs" />
     <Compile Include="Datasets.fs" />
-    <Compile Include="Dataset.fs" />
     <Compile Include="ResourceTypes.fs" />
     <Compile Include="TaskTypes.fs" />
     <Compile Include="Labels.fs" />

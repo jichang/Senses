@@ -6,6 +6,7 @@ open Elmish.Browser.UrlParser
 open Elmish.Browser.Navigation
 
 open Fable.Helpers.React
+open Fable.Helpers.React.Props
 
 open Shared.Model
 open Router
@@ -17,14 +18,21 @@ type Model =
       home: Home.Model option
       datasets: Datasets.Model option
       datasetCreate: DatasetCreate.Model option
-      datasetDetails: DatasetDetails.Model option }
+      datasetDetails: DatasetDetails.Model option
+      labels: Labels.Model option
+      labelCreate: LabelCreate.Model option
+      tasks: Tasks.Model option }
 
 type Msg =
+    | ChangePage of Page
     | Sign of Sign.Msg
     | Home of Home.Msg
     | Datasets of Datasets.Msg
     | DatasetCreate of DatasetCreate.Msg
     | DatasetDetails of DatasetDetails.Msg
+    | Labels of Labels.Msg
+    | LabelCreate of LabelCreate.Msg
+    | Tasks of Tasks.Msg
 
 let urlUpdate (result: Page option) (model: Model) : Model * Cmd<Msg> =
     match result with
@@ -99,6 +107,27 @@ let urlUpdate (result: Page option) (model: Model) : Model * Cmd<Msg> =
                         DatasetDetails.InitData.DatasetId datasetId
                 let (datasetDetailsModel, datasetDetailsCmd) = DatasetDetails.init initData
                 { model with datasetDetails = Some datasetDetailsModel; page = page }, Cmd.map DatasetDetails datasetDetailsCmd
+        | Page.Labels ->
+            match model.labels with
+            | Some _ ->
+                { model with page = page }, Cmd.none
+            | None ->
+                let labelsModel, labelsCmd = Labels.init ()
+                { model with labels = Some labelsModel; page = page }, Cmd.map Labels labelsCmd
+        | Page.LabelCreate ->
+            match model.labelCreate with
+            | Some _ ->
+                { model with page = page }, Cmd.none
+            | None ->
+                let labelCreateModel, labelCreateCmd = LabelCreate.init ()
+                { model with labelCreate = Some labelCreateModel; page = page }, Cmd.map LabelCreate labelCreateCmd
+        | Page.Tasks ->
+            match model.tasks with
+            | Some _ ->
+                { model with page = page }, Cmd.none
+            | None ->
+                let tasksModel, tasksCmd = Tasks.init ()
+                { model with tasks = Some tasksModel; page = page }, Cmd.map Tasks tasksCmd
     | None ->
         model, Navigation.newUrl "/"
 
@@ -112,7 +141,10 @@ let init (page: Page option) : Model * Cmd<Msg> =
           home = None
           datasets = None
           datasetCreate = None
-          datasetDetails = None }
+          datasetDetails = None
+          labels = None
+          labelCreate = None
+          tasks = None }
 
     let model, cmd =
         match session with
@@ -130,11 +162,20 @@ let init (page: Page option) : Model * Cmd<Msg> =
                     { defaultModel with datasets = Some datasetsModel }, Cmd.map Msg.Datasets datasetsCmd
                 | Page.DatasetCreate ->
                     let (datasetCreateModel, datasetCreateCmd) = DatasetCreate.init ()
-                    { defaultModel with datasetCreate = Some datasetCreateModel }, Cmd.map Msg.Datasets datasetCreateCmd
+                    { defaultModel with datasetCreate = Some datasetCreateModel }, Cmd.map Msg.DatasetCreate datasetCreateCmd
                 | Page.DatasetDetails datasetId ->
                     let initData = DatasetDetails.InitData.DatasetId datasetId
                     let (datasetDetailsModel, datasetDetailsCmd) = DatasetDetails.init initData
                     { defaultModel with datasetDetails = Some datasetDetailsModel }, Cmd.map Msg.DatasetDetails datasetDetailsCmd
+                | Page.Labels ->
+                    let (labelsModel, labelsCmd) = Labels.init ()
+                    { defaultModel with labels = Some labelsModel }, Cmd.map Msg.Labels labelsCmd
+                | Page.LabelCreate ->
+                    let (labelCreateModel, labelCreateCmd) = LabelCreate.init ()
+                    { defaultModel with labelCreate = Some labelCreateModel }, Cmd.map Msg.LabelCreate labelCreateCmd
+                | Page.Tasks ->
+                    let (tasksModel, tasksCmd) = Tasks.init ()
+                    { defaultModel with tasks = Some tasksModel }, Cmd.map Msg.Tasks tasksCmd
             | None ->
                 defaultModel, Navigation.newUrl "/sign"
         | Error error ->
@@ -153,6 +194,15 @@ let init (page: Page option) : Model * Cmd<Msg> =
 
 let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
     match msg with
+    | ChangePage page ->
+        let url =
+            match page with
+            | Page.Home -> "/"
+            | Page.Datasets -> "/datasets"
+            | Page.Tasks -> "/tasks"
+            | Page.Labels -> "/labels"
+            | _ -> "/"
+        model, Navigation.newUrl url
     | Sign signMsg ->
         let (signModel, signCmd) = Sign.update signMsg model.sign.Value
         match signMsg with
@@ -173,6 +223,15 @@ let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
     | DatasetDetails datasetDetailsMsg ->
         let (datasetDetailsModel, datasetDetailsCmd) = DatasetDetails.update datasetDetailsMsg model.datasetDetails.Value
         { model with datasetDetails = Some datasetDetailsModel }, Cmd.map DatasetDetails datasetDetailsCmd
+    | Labels labelsMsg ->
+        let (labelsModel, labelsCmd) = Labels.update labelsMsg model.labels.Value
+        { model with labels = Some labelsModel }, Cmd.map Labels labelsCmd
+    | LabelCreate labelCreateMsg ->
+        let (labelCreateModel, labelCreateCmd) = LabelCreate.update labelCreateMsg model.labelCreate.Value
+        { model with labelCreate = Some labelCreateModel }, Cmd.map LabelCreate labelCreateCmd
+    | Tasks tasksMsg ->
+        let (tasksModel, tasksCmd) = Tasks.update tasksMsg model.tasks.Value
+        { model with tasks = Some tasksModel }, Cmd.map Tasks tasksCmd
 
 let view (model : Model) (dispatch : Msg -> unit) =
     let pageView =
@@ -189,6 +248,12 @@ let view (model : Model) (dispatch : Msg -> unit) =
                 DatasetCreate.view model.datasetCreate.Value (dispatch << Msg.DatasetCreate)
             | Page.DatasetDetails datasetId ->
                 DatasetDetails.view model.datasetDetails.Value (dispatch << Msg.DatasetDetails)
+            | Page.Labels ->
+                Labels.view model.labels.Value (dispatch << Msg.Labels)
+            | Page.LabelCreate ->
+                LabelCreate.view model.labelCreate.Value (dispatch << Msg.LabelCreate)
+            | Page.Tasks ->
+                Tasks.view model.tasks.Value (dispatch << Msg.Tasks)
         | Error _ ->
             match model.sign with
             | Some signModel ->
@@ -196,9 +261,19 @@ let view (model : Model) (dispatch : Msg -> unit) =
             | None ->
                 div [] [ str "Refresh Page" ]
 
-    div []
-        [ pageView ]
+    let sideBar =
+        aside [ classList [("app-sidebar", true)] ]
+            [ nav [ classList [("app-nav", true)] ] [
+                ul [ classList [("menu", true)] ] [
+                    li [ classList [("menu-item", true)]; OnClick (fun _ -> dispatch (ChangePage Page.Home)) ] [ str "Home" ]
+                    li [ classList [("menu-item", true)]; OnClick (fun _ -> dispatch (ChangePage Page.Datasets)) ] [ str "Datasets" ]
+                    li [ classList [("menu-item", true)]; OnClick (fun _ -> dispatch (ChangePage Page.Tasks)) ] [ str "Tasks" ]
+                    li [ classList [("menu-item", true)]; OnClick (fun _ -> dispatch (ChangePage Page.Labels)) ] [ str "Labels" ] ]] ]
 
+    let mainContent =
+        Fable.Helpers.React.main [ classList [("app-main", true) ] ] [ pageView ]
+
+    div [ classList [("app", true) ] ] [ sideBar; mainContent ]
 
 #if DEBUG
 open Elmish.Debug

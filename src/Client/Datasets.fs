@@ -8,6 +8,7 @@ open Fable.PowerPack.Fetch
 open Shared.Model
 open Elmish.Browser.Navigation
 open Thoth.Json
+open Elmish.Browser.Navigation
 
 type Model =
     { loading: bool
@@ -52,7 +53,7 @@ let update (msg: Msg) (model: Model) =
     | Init (Ok response) ->
         { model with totalCount = response.totalCount; datasets = response.items; loading = false }, Cmd.none
     | Init (Error exn) ->
-        { model with loading = false }, Cmd.none
+        { model with loading = false }, Navigation.newUrl "/sign"
     | Choose dataset ->
         let datasetUrl = sprintf "/datasets/%i" dataset.id
         model, Navigation.newUrl datasetUrl
@@ -66,9 +67,9 @@ let view (model: Model) (dispatch: Msg -> unit) =
     else
         if Seq.isEmpty model.datasets then
             div []
-                [ div []
-                    [ p [] [ str "No datasets yet" ]
-                      a [ (OnClick (fun evt -> dispatch Create))] [ str "Create Dataset" ]] ]
+                [ div [ ]
+                    [ p [ ] [ str "No datasets yet" ]
+                      a [ OnClick (fun evt -> dispatch Create) ] [ str "Create Dataset" ]] ]
         else
             let datasetRow (dataset: Dataset) =
                 let datasetId = dataset.id.ToString()
@@ -85,10 +86,10 @@ let view (model: Model) (dispatch: Msg -> unit) =
                 table []
                     [ tbody [] datasetsRow ]
 
-            let tableHeader =
-                header []
-                    [ p [] [ str "Datasets" ]
+            let header =
+                header [ classList [("flex-box", true)] ]
+                    [ p [ classList [("flex-item", true)] ] [ str "Datasets" ]
                       button [ OnClick (fun _ -> dispatch Create )] [ str "Create" ] ] 
 
             div []
-                [ div [] [ tableHeader; datasetsTable] ]
+                [ div [] [ header; datasetsTable] ]

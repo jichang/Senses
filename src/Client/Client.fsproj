@@ -13,6 +13,9 @@
     <Compile Include="Datasets.fs" />
     <Compile Include="DatasetCreate.fs" />
     <Compile Include="DatasetDetails.fs" />
+    <Compile Include="Tasks.fs" />
+    <Compile Include="Labels.fs" />
+    <Compile Include="LabelCreate.fs" />
     <Compile Include="Client.fs" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />

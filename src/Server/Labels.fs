@@ -13,6 +13,7 @@ module Model =
     let labelsTable =
         Map.ofList
             [ "id", SqlType.Integer
+              "user_id", SqlType.Bigint
               "color", SqlType.CharacterVaring
               "title", SqlType.CharacterVaring
               "status", SqlType.Integer ]
@@ -21,7 +22,7 @@ module Model =
         let columnTypes =
             Map.add "total_count" SqlType.Bigint labelsTable
         let sql =
-            { statement = "SELECT id, title, color, count(*) OVER() AS total_count FROM senses.labels WHERE user_id=@user_id"
+            { statement = "SELECT id, title, color, status, count(*) OVER() AS total_count FROM senses.labels WHERE user_id=@user_id"
               parameters = [("user_id", Bigint user.id)]
               columnTypes = columnTypes }
         let rows = Database.execute Database.defaultConnection sql
