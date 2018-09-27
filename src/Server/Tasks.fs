@@ -10,18 +10,29 @@ open Thoth.Json.Net
 
 
 module Model =
-    let datasetsTable =
+
+    let tasksTable =
         Map.ofList
             [ "id", SqlType.Bigint
-              "title", SqlType.CharacterVaring
               "user_id", SqlType.Bigint
-              "status", SqlType.Integer ]
+              "status", SqlType.Integer 
+              "task_type_id", SqlType.Integer
+              "task_type_key", SqlType.CharacterVaring
+              "task_type_status", SqlType.Integer ]
 
-    let select (user: User): ModelCollection<Dataset> =
+    let select (user: User): ModelCollection<Task> =
         let columnTypes =
-            Map.add "total_count" SqlType.Bigint datasetsTable
+            Map.add "total_count" SqlType.Bigint tasksTable
         let sql =
-            { statement = "SELECT id, title, status, count(*) OVER() AS total_count FROM senses.datasets WHERE user_id=@user_id"
+            { statement =
+                """
+                SELECT
+                    id, status, count(*) OVER() AS total_count,
+                    task_type_id, task_type_key, task_type_status
+                FROM senses.tasks
+                LEFT JOIN senses.task_types ON senses.tasks.task_type_id= senses.task_types.id
+                WHERE user_id=@user_id
+                """
               parameters = [("user_id", Bigint user.id)]
               columnTypes = columnTypes }
         let rows = Database.execute Database.defaultConnection sql
@@ -33,43 +44,30 @@ module Model =
             let row = List.head rows
             match row.Item "total_count" with
             | Bigint totalCount ->
-                let datasets =
+                let tasks =
                     [ for row in rows do
                         let res =
                             let idColumn = row.Item "id"
-                            let titleColumn = row.Item "title"
                             let statusColumn = row.Item "status"
-                            match idColumn, titleColumn, statusColumn with
-                            | Bigint id, CharacterVaring title, Integer status ->
-                                Ok { id = id; title = title; user = user; tasks = { totalCount = 0L; items = [] }; resources = { totalCount = 0L; items = [] }; status = status}
+                            let taskTypeIdColumn = row.Item "task_type_id"
+                            let taskTypeKeyColumn = row.Item "task_type_key"
+                            let taskTypeStatusColumn = row.Item "task_type_status"
+                            match idColumn, statusColumn, taskTypeIdColumn, taskTypeKeyColumn, taskTypeStatusColumn with
+                            | Bigint id, Integer status, Integer taskTypeId, CharacterVaring "label", Integer taskTypeStatus ->
+                                let taskType =
+                                    { id = taskTypeId
+                                      key = TaskTypeKey.Label
+                                      status = taskTypeStatus }
+                                Ok { id = id; ``type`` = taskType; status = status }
                             | _ ->
                                 Error (Exception ("unmatch column value"))
 
                         match res with
-                        | Ok dataset -> yield dataset
+                        | Ok task -> yield task
                         | Error err -> printfn "%A" err ]
-                { totalCount = totalCount; items = datasets }
+                { totalCount = totalCount; items = tasks }
             | _ ->
                 { totalCount = 0L; items = [] }
-
-    let create (title: string) (user: User) : Dataset list =
-        let sql =
-            { statement = "INSERT INTO senses.datasets(user_id, title) VALUES (@user_id, @title) RETURNING id"
-              parameters = [("title", CharacterVaring title); ("user_id", Bigint user.id)]
-              columnTypes = datasetsTable }
-        let rows = Database.execute Database.defaultConnection sql
-
-        [ for row in rows do
-            let res =
-                let idColumn = row.Item "id"
-                match idColumn with
-                | Bigint id ->
-                    Ok { id = id; title = title; user = user; tasks = { totalCount = 0L; items = [] }; resources = { totalCount = 0L; items = [] }; status = 0}
-                | _ ->
-                    Error (Exception ("unmatch column type"))
-            match res with
-            | Ok user -> yield user
-            | Error err -> printfn "%A" err ]
 
 module Controller =
     open FSharp.Control.Tasks.ContextInsensitive
@@ -78,22 +76,8 @@ module Controller =
         let sub = ctx.User.FindFirst ClaimTypes.NameIdentifier
         match Decode.fromString User.Decoder sub.Value with
         | Ok user ->
-            let users: ModelCollection<Dataset> = Model.select user
+            let users: ModelCollection<Task> = Model.select user
             return! Controller.json ctx users
-        | Error err ->
-            printfn "error parsing claim: %A" err
-            let response =
-                { code = "invalid user code"}
-            return! Controller.json ctx response
-    }
-
-    let createAction (ctx: HttpContext) = task {
-        let sub = ctx.User.FindFirst ClaimTypes.NameIdentifier
-        match Decode.fromString User.Decoder sub.Value with
-        | Ok user ->
-            let! body = Controller.getJson<DatasetCreateParams> ctx
-            let dataset: Dataset = List.head (Model.create body.title user)
-            return! Controller.json ctx dataset
         | Error err ->
             printfn "error parsing claim: %A" err
             let response =
@@ -104,5 +88,4 @@ module Controller =
 
 let controller = controller {
     index Controller.indexAction
-    create Controller.createAction
 }

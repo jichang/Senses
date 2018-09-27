@@ -7,23 +7,22 @@ open Fable.PowerPack.Fetch
 
 open Shared.Model
 open Elmish.Browser.Navigation
-open Thoth.Json
 
 type Model =
     { loading: bool
       totalCount: int64
-      labels: Label list }
+      tasks: Task list }
 
 type Msg =
-    | Init of Result<ModelCollection<Label>, exn>
-    | Choose of Label
+    | Init of Result<ModelCollection<Task>, exn>
+    | Choose of Task
     | Create
 
 let init () =
     let model =
         { loading = true
           totalCount = 0L
-          labels = List.empty }
+          tasks = List.empty }
 
     let session: Result<Session, string> = Token.load ()
     match session with
@@ -37,9 +36,9 @@ let init () =
                     Authorization authorization ]]
 
         let cmd =
-            let decoder =(ModelCollection<Label>.Decoder Label.Decoder)
+            let decoder =(ModelCollection<Task>.Decoder Task.Decoder)
             Cmd.ofPromise
-                (fun _ -> fetchAs "/api/labels" decoder defaultProps)
+                (fun _ -> fetchAs "/api/tasks" decoder defaultProps)
                 ()                
                 (Ok >> Init)
                 (Error >> Init)
@@ -50,46 +49,44 @@ let init () =
 let update (msg: Msg) (model: Model) =
     match msg with
     | Init (Ok response) ->
-        { model with totalCount = response.totalCount; labels = response.items; loading = false }, Cmd.none
+        { model with totalCount = response.totalCount; tasks = response.items; loading = false }, Cmd.none
     | Init (Error exn) ->
         { model with loading = false }, Navigation.newUrl "/sign"
-    | Choose label ->
-        let labelUrl = sprintf "/labels/%i" label.id
-        model, Navigation.newUrl labelUrl
+    | Choose task ->
+        let taskUrl = sprintf "/tasks/%i" task.id
+        model, Navigation.newUrl taskUrl
     | Create ->
-        model, Navigation.newUrl "/labels/create"
+        model, Navigation.newUrl "/tasks/create"
 
 
 let view (model: Model) (dispatch: Msg -> unit) =
     if model.loading then
         div [] [ str "loading" ]
     else
-        if Seq.isEmpty model.labels then
+        if Seq.isEmpty model.tasks then
             div []
                 [ div []
-                    [ p [] [ str "No labels yet" ]
-                      a [ (OnClick (fun evt -> dispatch Create))] [ str "Create Label" ]] ]
+                    [ p [] [ str "No tasks yet" ]
+                      a [ (OnClick (fun evt -> dispatch Create))] [ str "Create Task" ]] ]
         else
-            let labelRow (label: Label) =
-                let labelId = label.id.ToString()
+            let taskRow (task: Task) =
+                let taskId = task.id.ToString()
                 tr []
-                    [ td [] [ str labelId ]
-                      td [] [ str label.title ]
-                      td [] [ str label.color ]
-                      td [] [ button [ OnClick (fun _ -> dispatch (Choose label)) ] [ str "Details" ] ] ]
+                    [ td [] [ str taskId ]
+                      td [] [ button [ OnClick (fun _ -> dispatch (Choose task)) ] [ str "Details" ] ] ]
 
-            let labelsRow =
-                Seq.map labelRow model.labels
+            let tasksRow =
+                Seq.map taskRow model.tasks
                 |> Seq.toList
 
-            let labelsTable =
+            let tasksTable =
                 table []
-                    [ tbody [] labelsRow ]
+                    [ tbody [] tasksRow ]
 
             let tableHeader =
                 header []
-                    [ p [] [ str "Labels" ]
+                    [ p [] [ str "Tasks" ]
                       button [ OnClick (fun _ -> dispatch Create )] [ str "Create" ] ] 
 
             div []
-                [ div [] [ tableHeader; labelsTable] ]
+                [ div [] [ tableHeader; tasksTable] ]

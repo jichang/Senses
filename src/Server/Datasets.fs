@@ -68,7 +68,7 @@ module Model =
                 | _ ->
                     Error (Exception ("unmatch column type"))
             match res with
-            | Ok user -> yield user
+            | Ok dataset -> yield dataset
             | Error err -> printfn "%A" err ]
 
 module Controller =

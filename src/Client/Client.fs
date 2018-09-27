@@ -21,7 +21,8 @@ type Model =
       datasetDetails: DatasetDetails.Model option
       labels: Labels.Model option
       labelCreate: LabelCreate.Model option
-      tasks: Tasks.Model option }
+      tasks: Tasks.Model option
+      taskCreate: TaskCreate.Model option }
 
 type Msg =
     | ChangePage of Page
@@ -33,8 +34,9 @@ type Msg =
     | Labels of Labels.Msg
     | LabelCreate of LabelCreate.Msg
     | Tasks of Tasks.Msg
+    | TaskCreate of TaskCreate.Msg
 
-let urlUpdate (result: Page option) (model: Model) : Model * Cmd<Msg> =
+let initPage (result: Page option) (model: Model) =
     match result with
     | Some page ->
         match page with
@@ -128,8 +130,17 @@ let urlUpdate (result: Page option) (model: Model) : Model * Cmd<Msg> =
             | None ->
                 let tasksModel, tasksCmd = Tasks.init ()
                 { model with tasks = Some tasksModel; page = page }, Cmd.map Tasks tasksCmd
+        | Page.TaskCreate taskId ->
+            match model.taskCreate with
+            | Some _ ->
+                { model with page = page }, Cmd.none
+            | None ->
+                let taskCreateModel, taskCreateCmd = TaskCreate.init ()
+                { model with taskCreate = Some taskCreateModel; page = page }, Cmd.map TaskCreate taskCreateCmd
     | None ->
         model, Navigation.newUrl "/"
+
+let urlUpdate = initPage
 
 let init (page: Page option) : Model * Cmd<Msg> =
     let session: Result<Session, string>  = Token.load ()
@@ -144,40 +155,13 @@ let init (page: Page option) : Model * Cmd<Msg> =
           datasetDetails = None
           labels = None
           labelCreate = None
-          tasks = None }
+          tasks = None
+          taskCreate = None }
 
     let model, cmd =
         match session with
         | Ok session ->
-            match page with
-            | Some page ->
-                match page with
-                | Page.Sign ->
-                    defaultModel, Cmd.none
-                | Page.Home ->
-                    let (homeModel, homeCmd) = Home.init session
-                    { defaultModel with home = Some homeModel }, Cmd.map Msg.Home homeCmd
-                | Page.Datasets ->
-                    let (datasetsModel, datasetsCmd) = Datasets.init ()
-                    { defaultModel with datasets = Some datasetsModel }, Cmd.map Msg.Datasets datasetsCmd
-                | Page.DatasetCreate ->
-                    let (datasetCreateModel, datasetCreateCmd) = DatasetCreate.init ()
-                    { defaultModel with datasetCreate = Some datasetCreateModel }, Cmd.map Msg.DatasetCreate datasetCreateCmd
-                | Page.DatasetDetails datasetId ->
-                    let initData = DatasetDetails.InitData.DatasetId datasetId
-                    let (datasetDetailsModel, datasetDetailsCmd) = DatasetDetails.init initData
-                    { defaultModel with datasetDetails = Some datasetDetailsModel }, Cmd.map Msg.DatasetDetails datasetDetailsCmd
-                | Page.Labels ->
-                    let (labelsModel, labelsCmd) = Labels.init ()
-                    { defaultModel with labels = Some labelsModel }, Cmd.map Msg.Labels labelsCmd
-                | Page.LabelCreate ->
-                    let (labelCreateModel, labelCreateCmd) = LabelCreate.init ()
-                    { defaultModel with labelCreate = Some labelCreateModel }, Cmd.map Msg.LabelCreate labelCreateCmd
-                | Page.Tasks ->
-                    let (tasksModel, tasksCmd) = Tasks.init ()
-                    { defaultModel with tasks = Some tasksModel }, Cmd.map Msg.Tasks tasksCmd
-            | None ->
-                defaultModel, Navigation.newUrl "/sign"
+            initPage page defaultModel
         | Error error ->
             match page with
             | Some page ->
@@ -232,6 +216,9 @@ let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
     | Tasks tasksMsg ->
         let (tasksModel, tasksCmd) = Tasks.update tasksMsg model.tasks.Value
         { model with tasks = Some tasksModel }, Cmd.map Tasks tasksCmd
+    | TaskCreate taskCreateMsg ->
+        let taskCreateModel, taskCreateCmd = TaskCreate.update taskCreateMsg model.taskCreate.Value
+        { model with taskCreate = Some taskCreateModel }, Cmd.map TaskCreate taskCreateCmd
 
 let view (model : Model) (dispatch : Msg -> unit) =
     let pageView =

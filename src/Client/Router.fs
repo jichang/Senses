@@ -11,6 +11,7 @@ module Router
         | DatasetCreate
         | DatasetDetails of int64
         | Tasks
+        | TaskCreate of int64
         | Labels
         | LabelCreate
         | LabelDetails of int32
@@ -22,7 +23,8 @@ module Router
               map Datasets (s "datasets")
               map DatasetCreate (s "datasets" </> s "create")
               map DatasetDetails (s "datasets" </> i64)
-              map Datasets (s "tasks")
               map Labels (s "labels")
               map LabelCreate (s "labels" </> s "create")
-              map LabelDetails (s "labels" </> i32) ]
+              map LabelDetails (s "labels" </> i32)
+              map Tasks (s "tasks")
+              map TaskCreate (s "tasks" </> i64) ]
