@@ -65,7 +65,7 @@ let view model dispatch =
         | Some dataset ->
             let tasks =
                 if List.isEmpty dataset.tasks.items then
-                    tbody [] [tr [ classList [("text--placeholder", true)]] [ td [ ColSpan 2.0 ] [str "No tasks" ]]]
+                    tbody [] [tr [ classList [("text--placeholder", true)]] [ td [ ColSpan 2 ] [str "No tasks" ]]]
                 else
                     let rows =
                         List.map (fun (task: Task) -> tr [] [ td [] [str (task.id.ToString())] ]) dataset.tasks.items
@@ -73,7 +73,7 @@ let view model dispatch =
 
             let resources =
                 if List.isEmpty dataset.resources.items then
-                    tbody [] [tr [ classList [("text--placeholder", true)]] [ td [ ColSpan 2.0 ] [str "No resources" ]]]
+                    tbody [] [tr [ classList [("text--placeholder", true)]] [ td [ ColSpan 2 ] [str "No resources" ]]]
                 else
                     let rows =
                         List.map (fun (resource: Resource) -> tr [] [ td [] [str (resource.id.ToString())] ]) dataset.resources.items

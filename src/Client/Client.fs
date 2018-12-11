@@ -4,6 +4,7 @@ open Elmish
 open Elmish.React
 open Elmish.Browser.UrlParser
 open Elmish.Browser.Navigation
+open Elmish.HMR
 
 open Fable.Helpers.React
 open Fable.Helpers.React.Props
@@ -274,7 +275,6 @@ Program.mkProgram init update view
 |> Program.toNavigable urlParser urlUpdate
 #if DEBUG
 |> Program.withConsoleTrace
-|> Program.withHMR
 #endif
 |> Program.withReact "elmish-app"
 #if DEBUG

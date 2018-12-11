@@ -18,7 +18,7 @@ let migrationsPath = Path.getFullName "./src/Migrations"
 
 let platformTool tool winTool =
     let tool = if Environment.isUnix then tool else winTool
-    match Process.tryFindFileOnPath tool with
+    match ProcessUtils.tryFindFileOnPath tool with
     | Some t -> t
     | _ ->
         let errorMsg =

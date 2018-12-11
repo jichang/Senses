@@ -4,8 +4,8 @@ group Server
 
     nuget FSharp.Core
     nuget Saturn
-    nuget Thoth.Json.Net prerelease
-    nuget Thoth.Json.Giraffe prerelease
+    nuget Thoth.Json.Net
+    nuget Thoth.Json.Giraffe
     nuget Npgsql
 
 group Migrations
@@ -20,14 +20,15 @@ group Client
     storage: none
     source https://api.nuget.org/v3/index.json
 
-    nuget Fable.Core prerelease
-    nuget Fable.Elmish.Debugger prerelease
-    nuget Fable.Elmish.React prerelease
-    nuget Fable.Elmish.HMR prerelease
-    nuget Fable.Elmish.Browser prerelease
-    nuget Thoth.Json prerelease
+    nuget Fable.Core
+    nuget Fable.Fetch
+    nuget Fable.Elmish.Debugger
+    nuget Fable.Elmish.React
+    nuget Fable.Elmish.HMR
+    nuget Fable.Elmish.Browser
+    nuget Thoth.Json
 
-    clitool dotnet-fable prerelease
+    clitool dotnet-fable
 
 group Build
     storage: none
