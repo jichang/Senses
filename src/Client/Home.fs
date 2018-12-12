@@ -8,17 +8,47 @@ open Shared.Model
 open Fable.PowerPack.Fetch
 
 type Model =
-    { ready: bool }
+    { ready: bool
+      summary: Summary option }
 
 type Msg =
-    | Init
+    | Init of Result<Summary, exn>
 
 let init (session: Session) =
-    { ready = false }, Cmd.none
+    let session: Result<Session, string> = Token.load ()
+    match session with
+    | Ok session ->
+        let authorization = sprintf "Bearer %s" session.token
+
+        let defaultProps =
+            [ RequestProperties.Method HttpMethod.GET
+              requestHeaders
+                  [ ContentType "application/json" 
+                    Authorization authorization ]]
+
+        let cmd =
+            let decoder = Summary.Decoder
+            Cmd.ofPromise
+                (fun _ -> fetchAs "/api/summary" decoder defaultProps)
+                ()                
+                (Ok >> Init)
+                (Error >> Init)
+        { ready = false; summary = None }, cmd
+    | Error _ ->
+        { ready = false; summary = None }, Cmd.none
 
 let update (msg: Msg) (model: Model) =
     match msg with
-    | Init -> model, Cmd.none
+    | Init (Ok response) ->
+      { model with summary = Some response; ready = true }, Cmd.none
+    | Init (Error response) ->
+      { model with ready = true }, Cmd.none
 
 let view (model: Model) (dispatch: Msg -> unit) =
-    div [] [ str "Not implemented" ]
+    match model.summary with
+    | None ->
+        div [] [ str "Not implemented" ]
+    | Some summary ->
+        let item (title: string) (count: int64) =
+            div [] [ str (title + count.ToString()) ]
+        div [] [ item "datasets: " summary.datasetsCount; item "labels: " summary.labelsCount ]

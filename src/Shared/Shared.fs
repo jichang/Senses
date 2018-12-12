@@ -66,6 +66,22 @@ module rec Model =
                   "uuid", Encode.guid user.uuid
                   "status", Encode.int user.status ]
 
+    type Summary =
+        { datasetsCount: int64
+          labelsCount: int64 }
+
+        static member Decoder : Decode.Decoder<Summary> =
+            Decode.object
+                (fun get ->
+                    { datasetsCount = get.Required.Field "datasetsCount" Decode.int64
+                      labelsCount = get.Required.Field "labelsCount" Decode.int64 }
+                )
+
+        static member Encoder (summary : Summary) =
+            Encode.object
+                [ "datasetsCount", Encode.int64 summary.datasetsCount
+                  "labelsCount", Encode.int64 summary.labelsCount ]
+
     type DatasetCreateParams =
         { title: string }
 

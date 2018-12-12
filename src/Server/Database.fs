@@ -123,7 +123,7 @@ let private readRow (columnTypes: Map<string, SqlType>) (reader: NpgsqlDataReade
                     | Error err ->
                         Error (Exception err)
                 | None ->
-                    Error (Exception ("No type definition!"))
+                    Error (Exception ("No type definition!" + columnName))
             | Error err ->
                 Error err
         ) (Ok Map.empty)

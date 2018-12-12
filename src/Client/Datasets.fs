@@ -7,8 +7,6 @@ open Fable.PowerPack.Fetch
 
 open Shared.Model
 open Elmish.Browser.Navigation
-open Thoth.Json
-open Elmish.Browser.Navigation
 
 type Model =
     { loading: bool
