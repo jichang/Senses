@@ -82,6 +82,25 @@ module rec Model =
                 [ "datasetsCount", Encode.int64 summary.datasetsCount
                   "labelsCount", Encode.int64 summary.labelsCount ]
 
+    type DatasetSlice =
+        { id: int64
+          title: string
+          status: int }
+
+        static member Decoder : Decode.Decoder<DatasetSlice> =
+            Decode.object
+                (fun get ->
+                    { id = get.Required.Field "id" Decode.int64
+                      title = get.Required.Field "title" Decode.string
+                      status = get.Required.Field "status" Decode.int }
+                )
+
+        static member Encoder (dataset : DatasetSlice) =
+            Encode.object
+                [ "id", Encode.int64 dataset.id
+                  "title", Encode.string dataset.title
+                  "status", Encode.int dataset.status ]
+
     type DatasetCreateParams =
         { title: string }
 
@@ -96,7 +115,7 @@ module rec Model =
           user: User
           title: string
           tasks: ModelCollection<Task>
-          resources: ModelCollection<Resource>
+          slices: ModelCollection<DatasetSlice>
           status: int }
 
         static member Decoder : Decode.Decoder<Dataset> =
@@ -106,7 +125,7 @@ module rec Model =
                       user = get.Required.Field "user" User.Decoder
                       title = get.Required.Field "title" Decode.string
                       tasks = get.Required.Field "tasks" (ModelCollection.Decoder Task.Decoder)
-                      resources = get.Required.Field "resources" (ModelCollection.Decoder Resource.Decoder)
+                      slices = get.Required.Field "slices" (ModelCollection.Decoder DatasetSlice.Decoder)
                       status = get.Required.Field "status" Decode.int }
                 )
 
@@ -116,7 +135,7 @@ module rec Model =
                   "user", User.Encoder dataset.user
                   "title", Encode.string dataset.title
                   "tasks", ModelCollection.Encoder Task.Encoder dataset.tasks
-                  "resources", ModelCollection.Encoder Resource.Encoder dataset.resources
+                  "slices", ModelCollection.Encoder DatasetSlice.Encoder dataset.slices
                   "status", Encode.int dataset.status ]
 
     type ResourceTypeKey =
@@ -212,112 +231,43 @@ module rec Model =
                   "type", TaskType.Encoder task.``type``
                   "status", Encode.int task.status ]
 
-    type Image =
-        { id: int64
-          uri: string // should use uri
-          status: int }
-
-        static member Decoder : Decode.Decoder<Image> =
-            Decode.object
-                (fun get ->
-                    { id = get.Required.Field "id" Decode.int64
-                      uri = get.Required.Field "uri" Decode.string
-                      status = get.Required.Field "status" Decode.int }
-                )
-
-        static member Encoder (image : Image) =
-            Encode.object
-                [ "id", Encode.int64 image.id
-                  "uri", Encode.string image.uri
-                  "status", Encode.int image.status ]
-
-    type Video =
-        { id: int64
-          uri: string // should use Uri
-          status: int }
-
-        static member Decoder : Decode.Decoder<Video> =
-            Decode.object
-                (fun get ->
-                    { id = get.Required.Field "id" Decode.int64
-                      uri = get.Required.Field "uri" Decode.string
-                      status = get.Required.Field "status" Decode.int }
-                )
-
-        static member Encoder (video : Video) =
-            Encode.object
-                [ "id", Encode.int64 video.id
-                  "uri", Encode.string video.uri
-                  "status", Encode.int video.status ]
-
-    type Txt =
-        { id: int64
-          content: string
-          status: int }
-
-        static member Decoder : Decode.Decoder<Txt> =
-            Decode.object
-                (fun get ->
-                    { id = get.Required.Field "id" Decode.int64
-                      content = get.Required.Field "content" Decode.string
-                      status = get.Required.Field "status" Decode.int }
-                )
-
-        static member Encoder (text : Txt) =
-            Encode.object
-                [ "id", Encode.int64 text.id
-                  "content", Encode.string text.content
-                  "status", Encode.int text.status ]
-
-    type ResourceContent =
-        | Txt of Txt
-        | Video of Video
-        | Image of Image
-
-        static member Decoder : Decode.Decoder<ResourceContent> =
-            Decode.object (fun get ->
-                match get.Required.Field "type" ResourceTypeKey.Decoder with
-                | ResourceTypeKey.Image ->
-                    get.Required.Field "image" (Image.Decoder |> Decode.map Image)
-                | ResourceTypeKey.Video ->
-                    get.Required.Field "video" (Video.Decoder |> Decode.map Video)
-                | ResourceTypeKey.Text ->
-                    get.Required.Field "text" (Txt.Decoder |> Decode.map Txt)
-                )
-
-        static member Encoder (resourceContent: ResourceContent) =
-            match resourceContent with
-            | Txt text ->
-                Encode.object
-                    [ "type", ResourceTypeKey.Encoder ResourceTypeKey.Text
-                      "text", Txt.Encoder text ]
-            | Video video ->
-                Encode.object
-                    [ "type", ResourceTypeKey.Encoder ResourceTypeKey.Text
-                      "video", Video.Encoder video ]
-            | Image image ->
-                Encode.object
-                    [ "type", ResourceTypeKey.Encoder ResourceTypeKey.Text
-                      "image", Image.Encoder image ]
-
     type Resource =
         { id: int64
-          content: ResourceContent
+          ``type``: ResourceType
+          uri: string
+          content: string
           status: int }
 
         static member Decoder : Decode.Decoder<Resource> =
             Decode.object
                 (fun get ->
                     { id = get.Required.Field "id" Decode.int64
-                      content = get.Required.Field "content" ResourceContent.Decoder
+                      ``type`` = get.Required.Field "type" ResourceType.Decoder
+                      uri = get.Required.Field "uri" Decode.string
+                      content = get.Required.Field "content" Decode.string
                       status = get.Required.Field "status" Decode.int }
                 )
 
         static member Encoder (resource : Resource) =
             Encode.object
                 [ "id", Encode.int64 resource.id
-                  "content", ResourceContent.Encoder resource.content
+                  "type", ResourceType.Encoder resource.``type``
+                  "uri", Encode.string resource.uri
+                  "content", Encode.string resource.content
                   "status", Encode.int resource.status ]
+
+    type ResourceCreateResponse =
+        { total: int64 }
+
+        static member Decoder : Decode.Decoder<ResourceCreateResponse> =
+            Decode.object
+                (fun get ->
+                    { total = get.Required.Field "id" Decode.int64 }
+                )
+
+        static member Encoder (resource : ResourceCreateResponse) =
+            Encode.object
+                [ "total", Encode.int64 resource.total ]
 
     type LabelCreateParams =
         { color: string
@@ -354,3 +304,39 @@ module rec Model =
                   "color", Encode.string label.color
                   "title", Encode.string label.title
                   "status", Encode.int label.status ]
+
+    type ResourceSource =
+        { uri: string
+          content: string }
+
+        static member Decoder : Decode.Decoder<ResourceSource> =
+            Decode.object
+                (fun get ->
+                    { uri = get.Required.Field "uri" Decode.string
+                      content = get.Required.Field "content" Decode.string }
+                )
+
+        static member Encoder (source : ResourceSource) =
+            Encode.object
+                [ "uri", Encode.string source.uri
+                  "content", Encode.string source.content ]
+ 
+    type ResourceFileLine =
+        { version: string
+          ``type``: ResourceTypeKey
+          source: ResourceSource
+          }
+
+        static member Decoder : Decode.Decoder<ResourceFileLine> =
+            Decode.object
+                (fun get ->
+                    { version = get.Required.Field "version" Decode.string
+                      ``type`` = get.Required.Field "type" ResourceTypeKey.Decoder
+                      source = get.Required.Field "source" ResourceSource.Decoder }
+                )
+
+        static member Encoder (fileLine : ResourceFileLine) =
+            Encode.object
+                [ "version", Encode.string fileLine.version
+                  "type", ResourceTypeKey.Encoder fileLine.``type``
+                  "source", ResourceSource.Encoder fileLine.source ]

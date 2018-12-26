@@ -49,6 +49,11 @@ let view (model: Model) (dispatch: Msg -> unit) =
     | None ->
         div [] [ str "Not implemented" ]
     | Some summary ->
-        let item (title: string) (count: int64) =
-            div [] [ str (title + count.ToString()) ]
-        div [] [ item "datasets: " summary.datasetsCount; item "labels: " summary.labelsCount ]
+        let item (title: string) (count: int64) (link: string) =
+            div
+                [ classList [("card__body", true)] ]
+                [ p [] [ str (title + count.ToString()) ]
+                  a [ Href link ] [ str "Details" ] ]
+        div [ classList [("flex__box", true)] ]
+            [ div [classList [("flex__item text--center card card--padding", true)]] [ item "Datasets: " summary.datasetsCount "/datasets" ]
+              div [classList [("flex__item text--center card card--padding", true)]] [ item "Labels: " summary.labelsCount "/labels" ] ]

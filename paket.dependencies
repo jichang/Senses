@@ -1,3 +1,5 @@
+version 5.193.0
+
 group Server
     storage: none
     source https://api.nuget.org/v3/index.json

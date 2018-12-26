@@ -65,39 +65,51 @@ let view model dispatch =
         | Some dataset ->
             let tasks =
                 if List.isEmpty dataset.tasks.items then
-                    tbody [] [tr [ classList [("text--placeholder", true)]] [ td [ ColSpan 2 ] [str "No tasks" ]]]
+                    tbody [] [tr [] [ td [ classList [("text--placeholder", true)]; ColSpan 2 ] [str "No tasks" ]]]
                 else
                     let rows =
                         List.map (fun (task: Task) -> tr [] [ td [] [str (task.id.ToString())] ]) dataset.tasks.items
                     tbody [] rows
 
-            let resources =
-                if List.isEmpty dataset.resources.items then
-                    tbody [] [tr [ classList [("text--placeholder", true)]] [ td [ ColSpan 2 ] [str "No resources" ]]]
+            let slices =
+                if List.isEmpty dataset.slices.items then
+                    tbody [] [tr [ ] [ td [classList [("text--placeholder", true)]; ColSpan 2 ] [str "No slices" ]]]
                 else
+                    let row (datasetSlice: DatasetSlice) =
+                        tr []
+                            [ td [] [ str (datasetSlice.id.ToString()) ]
+                              td [] [ str datasetSlice.title ]
+                              td [ ClassName "text--right" ] [ a [ Href (sprintf "/datasets/%d/slices/%d" dataset.id datasetSlice.id) ] [ str "Details" ] ] ]
                     let rows =
-                        List.map (fun (resource: Resource) -> tr [] [ td [] [str (resource.id.ToString())] ]) dataset.resources.items
+                        List.map row dataset.slices.items
                     tbody [] rows
 
             div []
-                [ p [] [ str dataset.title ]
+                [ p [] [ a [ Href "/datasets" ] [ str " < " ]; str dataset.title ]
                   div []
                       [
                         section [] [
-                          header [ classList [("flex-box", true)] ] [ p [ classList [("flex-item", true)] ] [str "Tasks"]; button [] [str "Create"] ]
-                          table [] [
+                          header
+                              [ classList [("flex__box", true)] ]
+                              [ p [ classList [("flex__item", true)] ] [ str "Tasks" ]
+                                a [ Href (sprintf "/datasets/%d/tasks/create" dataset.id); classList [("button button--primary button--solid", true)]] [str "Create Task"] ]
+                          table [classList [("table table--fullwidth", true)] ] [
                               thead [] [
                                   tr [] [
                                       th [] [ str "Id" ]
                                       th [] [ str "Title" ] ] ]
                               tasks]]
                         section [] [
-                          header [ classList [("flex-box", true)] ] [ p [ classList [("flex-item", true)] ] [str "Resources"]; button [] [str "Create"] ]
-                          table [] [
+                          header
+                              [ classList [("flex__box", true)] ]
+                              [ p [ classList [("flex__item", true)] ] [ str "Dataset Slices" ]
+                                a [ Href (sprintf "/datasets/%d/slices/create" dataset.id); classList [("button button--primary button--solid", true)]] [str "Create dataset slice"] ]
+                          table [ classList [("table table--fullwidth", true)] ] [
                               thead [] [
                                   tr [] [
-                                      th [] [ str "Id" ]
-                                      th [] [ str "Title" ] ] ]
-                              resources] ] ] ]
+                                      th [ ClassName "text--left" ] [ str "Id" ]
+                                      th [ ClassName "text--left" ] [ str "Title" ]
+                                      th [ ClassName "text--right" ] [] ] ]
+                              slices] ] ] ]
         | None ->
             div [] [ str "not found" ]

@@ -8,7 +8,7 @@ type CreateTasksResourcesRows() =
 
     override __.Up() =
       base.Execute """
-        INSERT INTO senses.tasks_resources(task_type_id, resource_type_id) (
+        INSERT INTO senses.tasks_resource_types(task_type_id, resource_type_id) (
           SELECT task_types.id, resource_types.id
           FROM senses.task_types
           CROSS JOIN senses.resource_types

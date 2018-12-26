@@ -2,6 +2,7 @@ module Token
 
 open Fable.PowerPack
 open Shared.Model
+open Thoth.Json
 
 let private sessionKey = "senses.session"
 

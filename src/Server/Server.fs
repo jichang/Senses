@@ -11,12 +11,10 @@ open Giraffe.Serialization
 let publicPath = Path.GetFullPath "../Client/public"
 let port = 8085us
 
-let pageHandler =
-    htmlFile (Path.Combine(publicPath, "index.html"))
-
 let apiRouter = router {
     pipe_through (Auth.requireAuthentication JWT)
 
+    forward "/session" Session.controller
     forward "/summary" Summary.controller
     forward "/labels" Labels.controller
     forward "/datasets" Datasets.controller
@@ -26,10 +24,8 @@ let apiRouter = router {
 }
 
 let webApp = router {
-    get "/datasets" pageHandler
-
+    forward "/api/signin" Sign.controller
     forward "/api/users" Users.controller
-    forward "/api/sessions" Session.controller
     forward "/api" apiRouter
 }
 

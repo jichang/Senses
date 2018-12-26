@@ -1,6 +1,10 @@
-.app {
-    display: flex;
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
 
+.app {
     min-height: 100vh;
 }
 
@@ -9,8 +13,11 @@
 }
 
 .app-main {
-    flex: 1;
-    padding: 1rem;
+    display: block;
+    margin: 0 auto;
+
+    width: 100%;
+    max-width: 64rem;
 }
 
 .site-logo {
@@ -28,6 +35,8 @@
 .form {
     display: block;
     margin: 0 auto;
+
+    max-width: 30rem;
 }
 
 .form--sign {
@@ -44,6 +53,12 @@
 
 .form__control {
     display: block;
+    padding: 0.5rem 1rem;
+}
+
+.form.form--vertical .form__field,
+.form.form--vertical .form__control {
+    width: 100%;
 }
 
 .form__control select,
@@ -56,11 +71,14 @@
     text-indent: 1rem;
 }
 
-.flex-box {
+.flex__box {
     display: flex;
+
+    align-items: center;
+    justify-content: center;
 }
 
-.flex-item {
+.flex__item {
     flex: 1;
 }
 
@@ -70,13 +88,128 @@
     text-align: center;
 }
 
-.menu {
-    padding: 0;
-    list-style: none;
+.text--left {
+    text-align: left;
 }
 
-.menu-item {
+.text--center {
+    text-align: center;
+}
+
+.text--right {
+    text-align: right;
+}
+
+button {
     padding: 0.5rem 1rem;
 
-    text-align: center;
+    border-width: 1px;
+
+    box-shadow: none;
+
+    cursor: pointer;
+}
+
+.button {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+}
+
+.button--solid {
+    background-color: rgba(0, 0, 0, 0.8);
+}
+
+.button--solid.button--primary {
+    border-color: rgba(0, 0, 0, 0.8);
+    color: white;
+}
+
+.button--outline {
+    background-color: transparent;
+}
+
+.button--solid.button--outline {
+    border-color: rgba(0, 0, 0, 0.8);
+    color: rgba(0, 0, 0, 0.8);
+}
+
+.button--flat {
+    border-color: transparent;
+}
+
+.button--flat.button--primary {
+    color: rgba(0, 0, 0, 0.8);
+
+    background-color: transparent;
+}
+
+.table.table--fullwidth {
+    margin-top: 1rem;
+    margin-bottom: 3rem;
+    border: rgba(0, 0, 0, 0.15) 1px solid;
+
+    width: 100%;
+
+    border-collapse: collapse;
+}
+
+.table thead {
+    border-bottom: rgba(0, 0, 0, 0.05) 1px solid;
+}
+
+.table tr:nth-child(even) {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+th,
+td {
+    padding: 0.5rem;
+}
+
+.card {
+}
+
+.card.card--padding {
+    padding: 1rem;
+}
+
+.card__body {
+    padding: 1rem;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.square {
+    width: 50%;
+}
+
+.square:after {
+    content: "";
+    display: block;
+    padding-bottom: 100%;
+}
+
+.form__field.square {
+    position: relative;
+    margin: 0 auto;
+
+    max-width: 10rem;
+}
+
+.form__field.square input {
+    position: absolute;
+    z-index: 1;
+
+    width: 100%;
+    height: 100%;
+
+    opacity: 0;
+}
+
+.form__field.square img {
+    position: absolute;
+    z-index: -1;
+    border: 1px solid #cccccc;
+
+    width: 100%;
+    height: 100%;
 }

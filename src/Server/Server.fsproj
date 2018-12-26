@@ -7,14 +7,18 @@
     <Compile Include="../Shared/Shared.fs" />
     <Compile Include="Config.fs" />
     <Compile Include="Database.fs" />
+    <Compile Include="Token.fs" />
     <Compile Include="Users.fs" />
     <Compile Include="Session.fs" />
-    <Compile Include="Datasets.fs" />
     <Compile Include="ResourceTypes.fs" />
+    <Compile Include="Resources.fs" />
+    <Compile Include="DatasetSlices.fs" />
+    <Compile Include="Datasets.fs" />
     <Compile Include="TaskTypes.fs" />
-    <Compile Include="Labels.fs" />
     <Compile Include="Tasks.fs" />
+    <Compile Include="Labels.fs" />
     <Compile Include="Summary.fs" />
+    <Compile Include="Sign.fs" />
     <Compile Include="Server.fs" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />

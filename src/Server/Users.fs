@@ -77,9 +77,9 @@ module Controller =
 
     let createAction ctx = task {
         let user: User = List.head (Model.create ())
-        return! Controller.json ctx user
+        let token = Token.generate user
+        return! Controller.json ctx { token = token }
     }
-
 
 let controller = controller {
     index Controller.indexAction

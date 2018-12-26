@@ -7,19 +7,16 @@
     <Compile Include="20180721122801_CreateSchema.fs" />
     <Compile Include="20180721143902_CreateUsersTable.fs" />
     <Compile Include="20180721145256_CreateDatasetsTable.fs" />
+    <Compile Include="20180721151635_CeateDatasetSlicesTable.fs" />
     <Compile Include="20180721152202_CreateResourceTypesTable.fs" />
     <Compile Include="20180721153202_CreateResourceTypesRows.fs" />
     <Compile Include="20180721175403_CreateTaskTypesTable.fs" />
     <Compile Include="20180721180429_CreateTaskTypesRows.fs" />
-    <Compile Include="20180721190325_CeateTasksResourcesTable.fs" />
-    <Compile Include="20180721190625_CeateTasksResourcesRows.fs" />
+    <Compile Include="20180721190325_CeateTasksResourceTypesTable.fs" />
+    <Compile Include="20180721190625_CeateTasksResourceTypesRows.fs" />
     <Compile Include="20180721191035_CeateDatasetTasksTable.fs" />
     <Compile Include="20180721191907_CreateResourcesTable.fs" />
-    <Compile Include="20180721192406_CeateDatasetResourcesTable.fs" />
-    <Compile Include="20180721193206_CeateImagesTable.fs" />
-    <Compile Include="20180721193506_CeateTextTable.fs" />
-    <Compile Include="20180721194106_CeateVideosTable.fs" />
-    <Compile Include="20180918070512_CreateLabelsTable.fs" />
+    <Compile Include="20180912210512_CreateLabelsTable.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />

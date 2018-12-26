@@ -63,32 +63,35 @@ let view (model: Model) (dispatch: Msg -> unit) =
     if model.loading then
         div [] [ str "loading" ]
     else
-        if Seq.isEmpty model.labels then
-            div []
-                [ div []
-                    [ p [] [ str "No labels yet" ]
-                      button [ (OnClick (fun evt -> dispatch Create))] [ str "Create Label" ]] ]
-        else
-            let labelRow (label: Label) =
-                let labelId = label.id.ToString()
-                tr []
-                    [ td [] [ str labelId ]
-                      td [] [ str label.title ]
-                      td [] [ str label.color ]
-                      td [] [ button [ OnClick (fun _ -> dispatch (Choose label)) ] [ str "Details" ] ] ]
+        let labelRow (label: Label) =
+            let labelId = label.id.ToString()
+            tr []
+                [ td [] [ str labelId ]
+                  td [] [ str label.title ]
+                  td [] [ str label.color ] ]
 
-            let labelsRow =
+        let labelsRow =
+            if Seq.isEmpty model.labels then
+               [ tr [ ] [ th [ColSpan 3] [p [classList [("text--placeholder", true)]] [ str "No labels yet" ] ] ] ]
+            else
                 Seq.map labelRow model.labels
                 |> Seq.toList
 
-            let labelsTable =
-                table []
-                    [ tbody [] labelsRow ]
+        let labelsTable =
+            let header =
+                thead []
+                    [ tr [] 
+                        [ th [ classList [("text--left", true)] ] [ str "Id" ]
+                          th [ classList [("text--left", true)] ] [ str "Title" ]
+                          th [ classList [("text--left", true)] ] [ str "Color" ] ] ]
 
-            let tableHeader =
-                header []
-                    [ p [] [ str "Labels" ]
-                      button [ OnClick (fun _ -> dispatch Create )] [ str "Create" ] ] 
+            table [  classList [("table table--fullwidth", true)] ]
+                [ header; tbody [] labelsRow ]
 
-            div []
-                [ div [] [ tableHeader; labelsTable] ]
+        let tableHeader =
+            header [ classList [("flex__box", true)] ]
+                [ p [ classList [("flex__item", true)] ] [ a [ Href "/" ] [ str "  <  " ]; str "Labels" ]
+                  button [ classList [("button--primary button--solid", true)]; OnClick (fun _ -> dispatch Create )] [ str "Create Label" ] ] 
+
+        div []
+            [ div [] [ tableHeader; labelsTable] ]

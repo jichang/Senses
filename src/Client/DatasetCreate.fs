@@ -2,12 +2,12 @@ module DatasetCreate
 
 open Shared.Model
 open Elmish
+open Elmish.Browser.Navigation
 open Fable.Helpers.React
 open Fable.Helpers.React.Props
 open Fable.Import.React
 open Fable.PowerPack.Fetch
 open Thoth.Json
-open Elmish.Browser.Navigation
 
 type Model =
     { creating: bool
@@ -45,10 +45,10 @@ let update msg model =
                       RequestProperties.Body <| unbox body ]
 
                 Cmd.ofPromise
-                        (fun _ -> fetchAs "/api/datasets" Dataset.Decoder defaultProps)
-                        ()
-                        (Ok >> CreateResponse)
-                        (Error >> CreateResponse)
+                    (fun _ -> fetchAs "/api/datasets" Dataset.Decoder defaultProps)
+                    ()
+                    (Ok >> CreateResponse)
+                    (Error >> CreateResponse)
 
             { model with creating = true }, cmd
         | Error _ ->
@@ -69,6 +69,13 @@ let view model dispatch =
     let changeTitle (evt: FormEvent) =
         dispatch <| ChangeTitle evt.Value
 
-    form [ OnSubmit submit ]
-        [ div [] [ input [ Placeholder "Input dataset title"; OnChange changeTitle; Value model.datasetCreateParams.title ] ]
-          div [] [ button [ Disabled model.creating ] [ str "Create Dataset" ] ] ] 
+    let datasetForm =
+        form [ ClassName "form form--vertical"; OnSubmit submit ]
+            [ div [ ClassName "form__field" ] [ input [ ClassName "form__control"; Placeholder "Input dataset title"; OnChange changeTitle; Value model.datasetCreateParams.title ] ]
+              div [ ClassName "form__field" ] [ button [ ClassName "form__control button--solid button--primary"; Disabled model.creating ] [ str "Create Dataset" ] ] ] 
+
+    let pageHeader =
+        header [ classList [("flex__box", true)] ]
+            [ p [ classList [("flex__item", true)] ] [ a [ Href "/datasets" ] [ str "  <  " ]; str "Datasets" ] ] 
+
+    div [] [ pageHeader; datasetForm]

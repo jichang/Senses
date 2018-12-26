@@ -17,11 +17,14 @@ module Model =
               "user_id", SqlType.Bigint
               "status", SqlType.Integer ]
 
-    let select (user: User): ModelCollection<Dataset> =
+    let selectAll (user: User): ModelCollection<Dataset> =
         let columnTypes =
             Map.add "total_count" SqlType.Bigint datasetsTable
+        let statement = """
+        SELECT id, title, status, count(*) OVER() AS total_count FROM senses.datasets WHERE user_id=@user_id
+        """
         let sql =
-            { statement = "SELECT id, title, status, count(*) OVER() AS total_count FROM senses.datasets WHERE user_id=@user_id"
+            { statement = statement
               parameters = [("user_id", Bigint user.id)]
               columnTypes = columnTypes }
         let rows = Database.execute Database.defaultConnection sql
@@ -41,7 +44,8 @@ module Model =
                             let statusColumn = row.Item "status"
                             match idColumn, titleColumn, statusColumn with
                             | Bigint id, CharacterVaring title, Integer status ->
-                                Ok { id = id; title = title; user = user; tasks = { totalCount = 0L; items = [] }; resources = { totalCount = 0L; items = [] }; status = status}
+                                let slices = DatasetSlices.Model.selectAll user id
+                                Ok { id = id; title = title; user = user; tasks = { totalCount = 0L; items = [] }; slices = slices; status = status}
                             | _ ->
                                 Error (Exception ("unmatch column value"))
 
@@ -64,12 +68,34 @@ module Model =
                 let idColumn = row.Item "id"
                 match idColumn with
                 | Bigint id ->
-                    Ok { id = id; title = title; user = user; tasks = { totalCount = 0L; items = [] }; resources = { totalCount = 0L; items = [] }; status = 0}
+                    Ok { id = id; title = title; user = user; tasks = { totalCount = 0L; items = [] }; slices = { totalCount = 0L; items = [] }; status = 0}
                 | _ ->
                     Error (Exception ("unmatch column type"))
             match res with
             | Ok dataset -> yield dataset
             | Error err -> printfn "%A" err ]
+
+    let selectOne (user: User) (datasetId: int64): Result<Dataset, exn> =
+        let sql =
+            { statement = "SELECT id, title, status FROM senses.datasets WHERE user_id=@user_id AND id=@id"
+              parameters = [("user_id", Bigint user.id); ("id", Bigint datasetId)]
+              columnTypes = datasetsTable }
+        let rows = Database.execute Database.defaultConnection sql
+
+        match rows.Length with
+        | 1 ->
+            let row = List.head rows
+            let idColumn = row.Item "id"
+            let titleColumn = row.Item "title"
+            let statusColumn = row.Item "status"
+            match idColumn, titleColumn, statusColumn with
+            | Bigint id, CharacterVaring title, Integer status ->
+                let slices = DatasetSlices.Model.selectAll user id
+                Ok { id = id; title = title; user = user; tasks = { totalCount = 0L; items = [] }; slices = slices; status = status}
+            | _ ->
+                Error (Exception ("unmatch column value"))
+        | _ ->
+            Error (Exception "No database found")
 
 module Controller =
     open FSharp.Control.Tasks.ContextInsensitive
@@ -78,10 +104,9 @@ module Controller =
         let sub = ctx.User.FindFirst ClaimTypes.NameIdentifier
         match Decode.fromString User.Decoder sub.Value with
         | Ok user ->
-            let users: ModelCollection<Dataset> = Model.select user
+            let users: ModelCollection<Dataset> = Model.selectAll user
             return! Controller.json ctx users
         | Error err ->
-            printfn "error parsing claim: %A" err
             let response =
                 { code = "invalid user code"}
             return! Controller.json ctx response
@@ -101,8 +126,27 @@ module Controller =
             return! Controller.json ctx response
     }
 
+    let showAction (ctx: HttpContext) (id: int64) = task {
+        let sub = ctx.User.FindFirst ClaimTypes.NameIdentifier
+        match Decode.fromString User.Decoder sub.Value with
+        | Ok user ->
+            match Model.selectOne user id with
+            | Ok dataset ->
+                return! Controller.json ctx dataset
+            | Error _ ->
+                return! Controller.text ctx ""
+        | Error err ->
+            printfn "error parsing claim: %A" err
+            let response =
+                { code = "invalid user code"}
+            return! Controller.json ctx response
+    }
+
 
 let controller = controller {
+    subController "/slices" DatasetSlices.controller
+
     index Controller.indexAction
     create Controller.createAction
+    show Controller.showAction
 }

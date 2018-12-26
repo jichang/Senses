@@ -75,7 +75,14 @@ let view model dispatch =
     let changeColor (evt: FormEvent) =
         dispatch <| ChangeColor evt.Value
 
-    form [ OnSubmit submit ]
-        [ div [] [ input [ Placeholder "Input label title"; OnChange changeTitle; Value model.labelCreateParams.title ] ]
-          div [] [ input [ Placeholder "Input label color"; OnChange changeColor; Value model.labelCreateParams.color ] ]
-          div [] [ button [ Disabled model.creating ] [ str "Create Label" ] ] ] 
+    let createForm =
+        form [ClassName "form form--vertical"; OnSubmit submit ]
+            [ div [ClassName "form__field" ] [ input [ClassName "form__control"; Placeholder "Input label title"; OnChange changeTitle; Value model.labelCreateParams.title ] ]
+              div [ClassName "form__field"] [ input [ClassName "form__control"; Placeholder "Input label color"; OnChange changeColor; Value model.labelCreateParams.color ] ]
+              div [ClassName "form__field"] [ button [ClassName "form__control button--solid button--primary"; Disabled model.creating ] [ str "Create Label" ] ] ] 
+
+    let pageHeader =
+        header [ classList [("flex__box", true)] ]
+            [ p [ classList [("flex__item", true)] ] [ a [ Href "/labels" ] [ str "  <  " ]; str "Labels" ] ] 
+
+    div [] [createForm]

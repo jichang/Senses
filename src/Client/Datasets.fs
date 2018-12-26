@@ -15,7 +15,6 @@ type Model =
 
 type Msg =
     | Init of Result<ModelCollection<Dataset>, exn>
-    | Choose of Dataset
     | Create
 
 let init () =
@@ -52,9 +51,6 @@ let update (msg: Msg) (model: Model) =
         { model with totalCount = response.totalCount; datasets = response.items; loading = false }, Cmd.none
     | Init (Error exn) ->
         { model with loading = false }, Navigation.newUrl "/sign"
-    | Choose dataset ->
-        let datasetUrl = sprintf "/datasets/%i" dataset.id
-        model, Navigation.newUrl datasetUrl
     | Create ->
         model, Navigation.newUrl "/datasets/create"
 
@@ -63,31 +59,36 @@ let view (model: Model) (dispatch: Msg -> unit) =
     if model.loading then
         div [] [ str "loading" ]
     else
-        if Seq.isEmpty model.datasets then
-            div []
-                [ div [ ]
-                    [ p [ ] [ str "No datasets yet" ]
-                      a [ OnClick (fun evt -> dispatch Create) ] [ str "Create Dataset" ]] ]
-        else
-            let datasetRow (dataset: Dataset) =
-                let datasetId = dataset.id.ToString()
-                tr []
-                    [ td [] [ str datasetId ]
-                      td [] [ str dataset.title ]
-                      td [] [ button [ OnClick (fun _ -> dispatch (Choose dataset)) ] [ str "Details" ] ] ]
+        let datasetRow (dataset: Dataset) =
+            let datasetId = dataset.id.ToString()
+            tr []
+                [ td [] [ str datasetId ]
+                  td [] [ str dataset.title ]
+                  td [ classList [("text--right", true)] ] [ a [ Href (sprintf "/datasets/%d" dataset.id) ] [ str "Details" ] ] ]
 
-            let datasetsRow =
+        let datasetsRow =
+            if Seq.isEmpty model.datasets then
+                [ tr [] [ td [ ColSpan 3 ] [ p [ classList [("text--placeholder", true)] ] [str "no datasets yet" ] ] ] ]
+            else
                 Seq.map datasetRow model.datasets
                 |> Seq.toList
 
-            let datasetsTable =
-                table []
-                    [ tbody [] datasetsRow ]
-
+        let datasetsTable =
             let header =
-                header [ classList [("flex-box", true)] ]
-                    [ p [ classList [("flex-item", true)] ] [ str "Datasets" ]
-                      button [ OnClick (fun _ -> dispatch Create )] [ str "Create" ] ] 
+                thead []
+                    [ tr [] 
+                        [ th [ classList [("text--left", true)] ] [ str "Id" ]
+                          th [ classList [("text--left", true)] ] [ str "Title" ]
+                          th [ classList [("text--right", true)] ] [ ] ] ]
 
-            div []
-                [ div [] [ header; datasetsTable] ]
+            table [ classList [("table table--fullwidth", true)] ]
+                [ header
+                  tbody [] datasetsRow ]
+
+        let pageHeader =
+            header [ classList [("flex__box", true)] ]
+                [ p [ classList [("flex__item", true)] ] [ a [ Href "/" ] [ str "  <  " ]; str "Datasets" ]
+                  button [ classList [("button--primary button--solid", true)]; OnClick (fun _ -> dispatch Create )] [ str "Create" ] ] 
+
+        div []
+            [ pageHeader; datasetsTable]

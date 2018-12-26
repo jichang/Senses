@@ -11,7 +11,8 @@ open Thoth.Json
 open Shared.Model
 
 type Model =
-    { loading: bool
+    { redirectUrl: string option
+      loading: bool
       signing: bool
       totalCount: int64
       users: User list
@@ -21,12 +22,13 @@ type Msg =
     | Init of Result<ModelCollection<User>, exn>
     | Choose of User option
     | Submit
-    | CreateResponse of Result<User, exn>
+    | CreateResponse of Result<Session, exn>
     | LoginResponse of Result<Session, exn>
 
-let init () =
+let init (redirectUrl: string option) =
     let model =
-        { loading = true
+        { redirectUrl = redirectUrl
+          loading = true
           signing = false
           totalCount = 0L
           users = List.empty
@@ -38,7 +40,7 @@ let init () =
               requestHeaders
                   [ ContentType "application/json" ]]
 
-        let decoder = ModelCollection.Decoder User.Decoder
+        let decoder = ModelCollection<User>.Decoder User.Decoder
         Cmd.ofPromise
             (fun _ -> fetchAs "/api/users" decoder defaultProps)
             ()
@@ -64,7 +66,7 @@ let update (msg: Msg) (model: Model) =
                   RequestProperties.Body <| unbox body ]
             let cmd =
                 Cmd.ofPromise
-                    (fun _ -> fetchAs "/api/sessions" Session.Decoder defaultProps)
+                    (fun _ -> fetchAs "/api/signin" Session.Decoder defaultProps)
                     ()
                     (Ok >> LoginResponse)
                     (Error >> LoginResponse)
@@ -75,18 +77,29 @@ let update (msg: Msg) (model: Model) =
                   requestHeaders [ContentType "application/json"] ]
             let cmd =
                 Cmd.ofPromise
-                    (fun _ -> fetchAs "/api/users" User.Decoder defaultProps)
+                    (fun _ -> fetchAs "/api/users" Session.Decoder defaultProps)
                     ()
                     (Ok >> CreateResponse)
                     (Error >> CreateResponse)
             { model with signing = true }, cmd
     | CreateResponse (Ok user) ->
-        let cmd = Navigation.newUrl "/"
-        { model with users = List.append model.users [user]; signing = false }, cmd
+        let redirectUrl =
+          match model.redirectUrl with
+          | Some redirectUrl ->
+              redirectUrl
+          | None ->
+              "/"
+        { model with signing = false }, Navigation.newUrl redirectUrl
     | CreateResponse (Error exn) ->
         { model with signing = false }, Cmd.none
     | LoginResponse (Ok session) ->
-        { model with signing = false }, Navigation.newUrl "/"
+        let redirectUrl =
+          match model.redirectUrl with
+          | Some redirectUrl ->
+              redirectUrl
+          | None ->
+              "/"
+        { model with signing = false }, Navigation.newUrl redirectUrl
     | LoginResponse (Error exn) ->
         { model with signing = false }, Cmd.none
 

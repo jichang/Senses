@@ -46,6 +46,9 @@ module.exports = {
                 changeOrigin: true
             }
         },
+        historyApiFallback: {
+            index: "index.html"
+        },
         contentBase: resolve("./public"),
         hot: true,
         inline: true
