@@ -10,7 +10,6 @@ open Thoth.Json.Net
 
 
 module Model =
-
     let tasksTable =
         Map.ofList
             [ "id", SqlType.Bigint
@@ -58,7 +57,7 @@ module Model =
                                     { id = taskTypeId
                                       key = TaskTypeKey.Label
                                       status = taskTypeStatus }
-                                Ok { id = id; ``type`` = taskType; status = status }
+                                Error (Exception ("unmatch column value"))
                             | _ ->
                                 Error (Exception ("unmatch column value"))
 

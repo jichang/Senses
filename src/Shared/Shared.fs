@@ -185,13 +185,12 @@ module rec Model =
             Decode.string
             |> Decode.andThen
                 (function
-                | "label" -> Decode.succeed TaskTypeKey.Label
+                | "Label" -> Decode.succeed TaskTypeKey.Label
                 | invalid -> Decode.fail (sprintf "Failed to decode `%s` it's an invalide case for `TaskTypeKey`" invalid) )
 
         static member Encoder (taskTypeKey : TaskTypeKey) =
             match taskTypeKey with
-            | Label -> "label"
-            |> Encode.string
+            | Label -> "Label" |> Encode.string
 
     type TaskType =
         { id: int
@@ -215,6 +214,8 @@ module rec Model =
     type Task =
         { id: int64
           ``type``: TaskType
+          labels: ModelCollection<Label>
+          datasetSlices: ModelCollection<DatasetSlice>
           status: int }
 
         static member Decoder : Decode.Decoder<Task> =
@@ -222,6 +223,8 @@ module rec Model =
                 (fun get ->
                     { id = get.Required.Field "id" Decode.int64
                       ``type`` = get.Required.Field "type" TaskType.Decoder
+                      labels = get.Required.Field "labels" (ModelCollection.Decoder Label.Decoder)
+                      datasetSlices = get.Required.Field "datasetSlices" (ModelCollection.Decoder DatasetSlice.Decoder)
                       status = get.Required.Field "status" Decode.int }
                 )
 
@@ -229,7 +232,27 @@ module rec Model =
             Encode.object
                 [ "id", Encode.int64 task.id
                   "type", TaskType.Encoder task.``type``
+                  "labels", (ModelCollection.Encoder Label.Encoder) task.labels
+                  "datasetSlices", (ModelCollection.Encoder DatasetSlice.Encoder) task.datasetSlices
                   "status", Encode.int task.status ]
+
+    type TaskCreateParams =
+        { taskType: TaskType
+          labels: Label list
+          datasetSlices: DatasetSlice list }
+
+        static member Decoder : Decode.Decoder<TaskCreateParams> =
+             Decode.object
+                 (fun get ->
+                     { taskType = get.Required.Field "taskType" TaskType.Decoder
+                       labels = get.Required.Field "labels" (Decode.list Label.Decoder)
+                       datasetSlices = get.Required.Field "datasetSlices" (Decode.list DatasetSlice.Decoder) } )
+
+        static member Encoder (taskCreateParams : TaskCreateParams) =
+            Encode.object
+                [ "taskType", TaskType.Encoder taskCreateParams.taskType
+                  "labels", Encode.list (List.map Label.Encoder taskCreateParams.labels)
+                  "datasetSlices", Encode.list (List.map DatasetSlice.Encoder taskCreateParams.datasetSlices) ]
 
     type Resource =
         { id: int64

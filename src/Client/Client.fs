@@ -18,6 +18,14 @@ type SessionState =
     | Valid
     | Invalid
 
+// TODO: a better approach is save all data in a seperate model like
+//
+// type Model =
+//     { store: { datasets: ...; labels: ...; tasks: ...; ... } }
+//
+// then when navigation change event happens, instream of use Option to
+// cache page model, we can just retrive data from this model.store
+// and create a new model
 type Model =
     { session: Result<Session, string>
       sessionState: SessionState
@@ -27,11 +35,11 @@ type Model =
       datasets: Datasets.Model option
       datasetCreate: DatasetCreate.Model option
       datasetDetails: DatasetDetails.Model option
-      datasetResourcesCreate: DatasetSlicesCreate.Model option
+      datasetResourceCreate: DatasetSliceCreate.Model option
+      datasetTaskCreate: DatasetTaskCreate.Model option
       labels: Labels.Model option
       labelCreate: LabelCreate.Model option
-      tasks: Tasks.Model option
-      taskCreate: TaskCreate.Model option }
+      tasks: Tasks.Model option }
 
 type Msg =
     | SessionCheck of Result<Response, exn>
@@ -40,11 +48,11 @@ type Msg =
     | Datasets of Datasets.Msg
     | DatasetCreate of DatasetCreate.Msg
     | DatasetDetails of DatasetDetails.Msg
-    | DatasetSlicesCreate of DatasetSlicesCreate.Msg
+    | DatasetSliceCreate of DatasetSliceCreate.Msg
+    | DatasetTaskCreate of DatasetTaskCreate.Msg
     | Labels of Labels.Msg
     | LabelCreate of LabelCreate.Msg
     | Tasks of Tasks.Msg
-    | TaskCreate of TaskCreate.Msg
 
 let initPage (page: Page option) (model: Model) : Model * Cmd<Msg> =
     match page with
@@ -113,13 +121,20 @@ let initPage (page: Page option) (model: Model) : Model * Cmd<Msg> =
                     DatasetDetails.InitData.DatasetId datasetId
             let (datasetDetailsModel, datasetDetailsCmd) = DatasetDetails.init initData
             { model with datasetDetails = Some datasetDetailsModel; page = page }, Cmd.map DatasetDetails datasetDetailsCmd
-    | Some (Page.DatasetSlicesCreate datasetId) ->
-        match model.datasetResourcesCreate with
+    | Some (Page.DatasetSliceCreate datasetId) ->
+        match model.datasetResourceCreate with
         | Some _ ->
             { model with page = page }, Cmd.none
         | None ->
-            let datasetResourcesCreateModel, datasetResourcesCreateCmd = DatasetSlicesCreate.init datasetId
-            { model with datasetResourcesCreate = Some datasetResourcesCreateModel; page = page }, Cmd.map DatasetSlicesCreate datasetResourcesCreateCmd
+            let datasetResourceCreateModel, datasetResourceCreateCmd = DatasetSliceCreate.init datasetId
+            { model with datasetResourceCreate = Some datasetResourceCreateModel; page = page }, Cmd.map DatasetSliceCreate datasetResourceCreateCmd
+    | Some (Page.DatasetTaskCreate datasetId) ->
+        match model.datasetTaskCreate with
+        | Some _ ->
+            { model with page = page }, Cmd.none
+        | None ->
+            let datasetTaskCreateModel, datasetTaskCreateCmd = DatasetTaskCreate.init datasetId
+            { model with datasetTaskCreate = Some datasetTaskCreateModel; page = page }, Cmd.map DatasetTaskCreate datasetTaskCreateCmd
     | Some Page.Labels ->
         match model.labels with
         | Some _ ->
@@ -141,13 +156,6 @@ let initPage (page: Page option) (model: Model) : Model * Cmd<Msg> =
         | None ->
             let tasksModel, tasksCmd = Tasks.init ()
             { model with tasks = Some tasksModel; page = page }, Cmd.map Tasks tasksCmd
-    | Some (Page.TaskCreate taskId) ->
-        match model.taskCreate with
-        | Some _ ->
-            { model with page = page }, Cmd.none
-        | None ->
-            let taskCreateModel, taskCreateCmd = TaskCreate.init ()
-            { model with taskCreate = Some taskCreateModel; page = page }, Cmd.map TaskCreate taskCreateCmd
     | None ->
         model, Navigation.newUrl "/"
 
@@ -163,11 +171,11 @@ let init (page: Page option) : Model * Cmd<Msg> =
           datasets = None
           datasetCreate = None
           datasetDetails = None
-          datasetResourcesCreate = None
+          datasetResourceCreate = None
+          datasetTaskCreate = None
           labels = None
           labelCreate = None
-          tasks = None
-          taskCreate = None }
+          tasks = None }
 
     let model, cmd =
         match session with
@@ -228,9 +236,12 @@ let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
     | DatasetDetails datasetDetailsMsg ->
         let (datasetDetailsModel, datasetDetailsCmd) = DatasetDetails.update datasetDetailsMsg model.datasetDetails.Value
         { model with datasetDetails = Some datasetDetailsModel }, Cmd.map DatasetDetails datasetDetailsCmd
-    | DatasetSlicesCreate datasetResourcesCreateMsg ->
-        let (datasetResourcesCreateModel, datasetResourcesCreateCmd) = DatasetSlicesCreate.update datasetResourcesCreateMsg model.datasetResourcesCreate.Value
-        { model with datasetResourcesCreate = Some datasetResourcesCreateModel }, Cmd.map DatasetSlicesCreate datasetResourcesCreateCmd
+    | DatasetSliceCreate datasetResourceCreateMsg ->
+        let (datasetResourceCreateModel, datasetResourceCreateCmd) = DatasetSliceCreate.update datasetResourceCreateMsg model.datasetResourceCreate.Value
+        { model with datasetResourceCreate = Some datasetResourceCreateModel }, Cmd.map DatasetSliceCreate datasetResourceCreateCmd
+    | DatasetTaskCreate taskCreateMsg ->
+        let taskCreateModel, taskCreateCmd = DatasetTaskCreate.update taskCreateMsg model.datasetTaskCreate.Value
+        { model with datasetTaskCreate = Some taskCreateModel }, Cmd.map DatasetTaskCreate taskCreateCmd
     | Labels labelsMsg ->
         let (labelsModel, labelsCmd) = Labels.update labelsMsg model.labels.Value
         { model with labels = Some labelsModel }, Cmd.map Labels labelsCmd
@@ -240,9 +251,6 @@ let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
     | Tasks tasksMsg ->
         let (tasksModel, tasksCmd) = Tasks.update tasksMsg model.tasks.Value
         { model with tasks = Some tasksModel }, Cmd.map Tasks tasksCmd
-    | TaskCreate taskCreateMsg ->
-        let taskCreateModel, taskCreateCmd = TaskCreate.update taskCreateMsg model.taskCreate.Value
-        { model with taskCreate = Some taskCreateModel }, Cmd.map TaskCreate taskCreateCmd
 
 let view (model : Model) (dispatch : Msg -> unit) =
     let pageView =
@@ -263,8 +271,10 @@ let view (model : Model) (dispatch : Msg -> unit) =
                     DatasetCreate.view model.datasetCreate.Value (dispatch << Msg.DatasetCreate)
                 | Some (Page.DatasetDetails datasetId) ->
                     DatasetDetails.view model.datasetDetails.Value (dispatch << Msg.DatasetDetails)
-                | Some (Page.DatasetSlicesCreate datasetId) ->
-                    DatasetSlicesCreate.view model.datasetResourcesCreate.Value (dispatch << Msg.DatasetSlicesCreate)
+                | Some (Page.DatasetSliceCreate datasetId) ->
+                    DatasetSliceCreate.view model.datasetResourceCreate.Value (dispatch << Msg.DatasetSliceCreate)
+                | Some (Page.DatasetTaskCreate datasetId) ->
+                    DatasetTaskCreate.view model.datasetTaskCreate.Value (dispatch << Msg.DatasetTaskCreate)
                 | Some Page.Labels ->
                     Labels.view model.labels.Value (dispatch << Msg.Labels)
                 | Some Page.LabelCreate ->

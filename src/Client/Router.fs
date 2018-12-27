@@ -13,12 +13,11 @@ module Router
         | Datasets
         | DatasetCreate
         | DatasetDetails of int64
-        | DatasetTasksCreate of int64
+        | DatasetTaskCreate of int64
         | DatasetTasks of int64
-        | DatasetSlicesCreate of int64
+        | DatasetSliceCreate of int64
         | DatasetResources of int64
         | Tasks
-        | TaskCreate of int64
         | Labels
         | LabelCreate
 
@@ -29,11 +28,10 @@ module Router
               map Datasets (s "datasets")
               map DatasetCreate (s "datasets" </> s "create")
               map DatasetDetails (s "datasets" </> i64)
-              map DatasetSlicesCreate (s "datasets" </> i64 </> s "slices" </> s "create")
+              map DatasetSliceCreate (s "datasets" </> i64 </> s "slices" </> s "create")
               map DatasetResources (s "datasets" </> i64 </> s "slices")
-              map DatasetTasksCreate (s "datasets" </> i64 </> s "tasks" </> s "create")
+              map DatasetTaskCreate (s "datasets" </> i64 </> s "tasks" </> s "create")
               map DatasetTasks (s "datasets" </> i64 </> s "tasks")
               map Labels (s "labels")
               map LabelCreate (s "labels" </> s "create")
-              map Tasks (s "tasks")
-              map TaskCreate (s "tasks" </> i64) ]
+              map Tasks (s "tasks") ]

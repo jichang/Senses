@@ -13,7 +13,7 @@ module Model =
               "key", SqlType.CharacterVaring
               "status", SqlType.Integer ]
 
-    let select (): ModelCollection<TaskType> =
+    let selectAll (): ModelCollection<TaskType> =
         let columnTypes = Map.add "total_count" SqlType.Bigint taskTypesTable
         let sql =
             { statement = "SELECT id, key, status, count(*) OVER() AS total_count from senses.task_types"
@@ -47,12 +47,11 @@ module Model =
             | _ ->
                 { totalCount = 0L; items = [] }
 
-
 module Controller =
     open FSharp.Control.Tasks.ContextInsensitive
 
     let indexAction ctx = task {
-        let taskTypes: ModelCollection<TaskType> = Model.select ()
+        let taskTypes: ModelCollection<TaskType> = Model.selectAll ()
         return! Controller.json ctx taskTypes
     }
 

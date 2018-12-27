@@ -63,17 +63,10 @@ let view model dispatch =
     else
         match model.dataset with
         | Some dataset ->
-            let tasks =
-                if List.isEmpty dataset.tasks.items then
-                    tbody [] [tr [] [ td [ classList [("text--placeholder", true)]; ColSpan 2 ] [str "No tasks" ]]]
-                else
-                    let rows =
-                        List.map (fun (task: Task) -> tr [] [ td [] [str (task.id.ToString())] ]) dataset.tasks.items
-                    tbody [] rows
 
             let slices =
                 if List.isEmpty dataset.slices.items then
-                    tbody [] [tr [ ] [ td [classList [("text--placeholder", true)]; ColSpan 2 ] [str "No slices" ]]]
+                    tbody [] [tr [ ] [ td [classList [("text--placeholder", true)]; ColSpan 3 ] [str "No slices" ]]]
                 else
                     let row (datasetSlice: DatasetSlice) =
                         tr []
@@ -82,6 +75,22 @@ let view model dispatch =
                               td [ ClassName "text--right" ] [ a [ Href (sprintf "/datasets/%d/slices/%d" dataset.id datasetSlice.id) ] [ str "Details" ] ] ]
                     let rows =
                         List.map row dataset.slices.items
+                    tbody [] rows
+
+            let tasks =
+                if List.isEmpty dataset.tasks.items then
+                    tbody [] [tr [] [ td [ classList [("text--placeholder", true)]; ColSpan 2 ] [str "No tasks" ]]]
+                else
+                    let row (task: Task) =
+                        let typeString =
+                            match task.``type``.key with
+                            | TaskTypeKey.Label -> "Label"
+
+                        tr []
+                            [ td [] [str (task.id.ToString())]
+                              td [] [str typeString ] ]
+                    let rows =
+                        List.map row dataset.tasks.items
                     tbody [] rows
 
             div []
@@ -96,8 +105,8 @@ let view model dispatch =
                           table [classList [("table table--fullwidth", true)] ] [
                               thead [] [
                                   tr [] [
-                                      th [] [ str "Id" ]
-                                      th [] [ str "Title" ] ] ]
+                                      th [ ClassName "text--left" ] [ str "Id" ]
+                                      th [ ClassName "text--left" ] [ str "Title" ] ] ]
                               tasks]]
                         section [] [
                           header

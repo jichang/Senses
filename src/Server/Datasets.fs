@@ -91,7 +91,8 @@ module Model =
             match idColumn, titleColumn, statusColumn with
             | Bigint id, CharacterVaring title, Integer status ->
                 let slices = DatasetSlices.Model.selectAll user id
-                Ok { id = id; title = title; user = user; tasks = { totalCount = 0L; items = [] }; slices = slices; status = status}
+                let tasks = DatasetTasks.Model.selectAll user id
+                Ok { id = id; title = title; user = user; tasks = tasks; slices = slices; status = status}
             | _ ->
                 Error (Exception ("unmatch column value"))
         | _ ->
@@ -145,6 +146,7 @@ module Controller =
 
 let controller = controller {
     subController "/slices" DatasetSlices.controller
+    subController "/tasks" DatasetTasks.controller
 
     index Controller.indexAction
     create Controller.createAction

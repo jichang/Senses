@@ -1,4 +1,4 @@
-module DatasetSlicesCreate
+module DatasetSliceCreate
 
 open Elmish
 open Fable.Helpers.React
