@@ -15,6 +15,9 @@ module Model =
               "user_id", SqlType.Bigint
               "dataset_id", SqlType.Bigint
               "dataset_slice_id", SqlType.Bigint
+              "type_id", SqlType.Integer
+              "type_key", SqlType.CharacterVaring
+              "type_status", SqlType.Integer
               "uri", SqlType.CharacterVaring
               "content", SqlType.Text
               "status", SqlType.Integer ]
@@ -73,10 +76,10 @@ module Model =
           types.status as type_status,
           count(*) OVER() AS total_count
         FROM senses.resources as resources
-        LEFT JOIN senses.resource_types as types ON images.resource_type_id = resource_types.id
+        LEFT JOIN senses.resource_types as types ON resources.resource_type_id = types.id
         LEFT JOIN senses.dataset_slices as slices ON slices.id = resources.dataset_slice_id
-        LEFT JOIN senses.datasets as datasets ON slices.id = datasets.id
-        WHERE user_id=@user_id AND slices.id=@dataset_slice_id AND datasets.id=@dataset_id
+        LEFT JOIN senses.datasets as datasets ON slices.dataset_id = datasets.id
+        WHERE datasets.user_id=@user_id AND resources.dataset_slice_id=@dataset_slice_id AND datasets.id=@dataset_id
         """
         let sql =
             { statement = statement
@@ -93,7 +96,7 @@ module Model =
             | Bigint totalCount ->
                 let resources =
                     [ for row in rows do
-                        let typeIdColumn = row.Item "type_key"
+                        let typeIdColumn = row.Item "type_id"
                         let typeKeyColumn = row.Item "type_key"
                         let typeStatusColumn = row.Item "type_status"
                         let idColumn = row.Item "id"
@@ -108,8 +111,9 @@ module Model =
                                 Ok { id = id; uri = uri; content = content; status = status; ``type`` = { id = typeId; key = ResourceTypeKey.Image; status = typeStatus } }
                             | Bigint id, CharacterVaring uri, Text content, Integer status, Integer typeId, CharacterVaring "text", Integer typeStatus ->
                                 Ok { id = id; uri = uri; content = content; status = status; ``type`` = { id = typeId; key = ResourceTypeKey.Text; status = typeStatus } }
-                            | _ ->
-                                Error "unmatch column type"
+                            | res ->
+                                let msg = sprintf "unmatch column type: %A" res
+                                Error msg
 
                         match res with
                         | Ok resource -> yield resource

@@ -14,6 +14,7 @@
     <Compile Include="DatasetDetails.fs" />
     <Compile Include="DatasetSliceCreate.fs" />
     <Compile Include="DatasetTaskCreate.fs" />
+    <Compile Include="DatasetSliceDetails.fs" />
     <Compile Include="Tasks.fs" />
     <Compile Include="Labels.fs" />
     <Compile Include="LabelCreate.fs" />

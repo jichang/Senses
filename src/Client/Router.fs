@@ -16,10 +16,12 @@ module Router
         | DatasetTaskCreate of int64
         | DatasetTasks of int64
         | DatasetSliceCreate of int64
-        | DatasetResources of int64
+        | DatasetSliceDetails of int64 * int64
         | Tasks
         | Labels
         | LabelCreate
+
+    let curry2 f x y = f (x, y)
 
     let pageParser: Parser<Page->Page, Page>  =
         oneOf
@@ -29,7 +31,7 @@ module Router
               map DatasetCreate (s "datasets" </> s "create")
               map DatasetDetails (s "datasets" </> i64)
               map DatasetSliceCreate (s "datasets" </> i64 </> s "slices" </> s "create")
-              map DatasetResources (s "datasets" </> i64 </> s "slices")
+              map (curry2 DatasetSliceDetails) (s "datasets" </> i64 </> s "slices" </> i64)
               map DatasetTaskCreate (s "datasets" </> i64 </> s "tasks" </> s "create")
               map DatasetTasks (s "datasets" </> i64 </> s "tasks")
               map Labels (s "labels")

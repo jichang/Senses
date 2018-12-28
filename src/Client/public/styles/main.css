@@ -227,3 +227,20 @@ h4 {
     display: inline-block;
     margin: 0 0.5rem;
 }
+
+.grid {
+    display: flex;
+
+    flex-wrap: wrap;
+}
+
+.grid__cell {
+    margin: 0.5%;
+    border: 1px solid #cccccc;
+
+    width: 24%;
+
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center center;
+}

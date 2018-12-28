@@ -147,16 +147,16 @@ module rec Model =
             Decode.string
             |> Decode.andThen
                 (function
-                | "image" -> Decode.succeed ResourceTypeKey.Image
-                | "text" -> Decode.succeed ResourceTypeKey.Text
-                | "video" -> Decode.succeed ResourceTypeKey.Video
+                | "Image" -> Decode.succeed ResourceTypeKey.Image
+                | "Text" -> Decode.succeed ResourceTypeKey.Text
+                | "Video" -> Decode.succeed ResourceTypeKey.Video
                 | invalid -> Decode.fail (sprintf "Failed to decode `%s` it's an invalide case for `ResourceTypeKey`" invalid) )
 
         static member Encoder (resourceTypeKey : ResourceTypeKey) =
             match resourceTypeKey with
-            | Image -> "image"
-            | Text -> "text"
-            | Video -> "video"
+            | Image -> "Image"
+            | Text -> "Text"
+            | Video -> "Video"
             |> Encode.string
 
     type ResourceType =

@@ -109,7 +109,7 @@ module Model =
         let statement = """
         SELECT id, title, status
         FROM senses.dataset_slices
-        WHERE user_id=@user_id AND datasetId=@datasetId AND id=@id
+        WHERE user_id=@user_id AND dataset_id=@dataset_id AND id=@id
         """
         let sql =
             { statement = statement
