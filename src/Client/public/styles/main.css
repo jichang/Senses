@@ -238,9 +238,25 @@ h4 {
     margin: 0.5%;
     border: 1px solid #cccccc;
 
-    width: 24%;
+    width: 19%;
 
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center center;
+}
+
+.tool {
+    display: inline-block;
+    margin-right: 0.5rem;
+
+    text-align: center;
+}
+
+.tool img {
+    margin-right: 0.5rem;
+
+    width: 1rem;
+    height: 1rem;
+
+    vertical-align: middle;
 }

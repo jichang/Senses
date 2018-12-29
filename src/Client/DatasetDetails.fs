@@ -79,7 +79,7 @@ let view model dispatch =
 
             let tasks =
                 if List.isEmpty dataset.tasks.items then
-                    tbody [] [tr [] [ td [ classList [("text--placeholder", true)]; ColSpan 2 ] [str "No tasks" ]]]
+                    tbody [] [tr [] [ td [ classList [("text--placeholder", true)]; ColSpan 3 ] [str "No tasks" ]]]
                 else
                     let row (task: Task) =
                         let typeString =
@@ -88,7 +88,8 @@ let view model dispatch =
 
                         tr []
                             [ td [] [str (task.id.ToString())]
-                              td [] [str typeString ] ]
+                              td [] [str typeString ]
+                              td [ ClassName "text--right" ] [ a [ Href (sprintf "/datasets/%d/tasks/%d" dataset.id task.id) ] [ str "Details" ] ] ]
                     let rows =
                         List.map row dataset.tasks.items
                     tbody [] rows
@@ -106,7 +107,8 @@ let view model dispatch =
                               thead [] [
                                   tr [] [
                                       th [ ClassName "text--left" ] [ str "Id" ]
-                                      th [ ClassName "text--left" ] [ str "Title" ] ] ]
+                                      th [ ClassName "text--left" ] [ str "Type" ]
+                                      th [ ClassName "text--right" ] [] ] ]
                               tasks]]
                         section [] [
                           header

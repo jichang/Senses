@@ -29,7 +29,7 @@ module Model =
               "label_id", SqlType.Integer
               "label_title", SqlType.CharacterVaring
               "label_color", SqlType.CharacterVaring
-              "label_status", SqlType.CharacterVaring ]
+              "label_status", SqlType.Integer ]
 
     let taskDatasetSlicesTable = 
         Map.ofList
@@ -37,7 +37,7 @@ module Model =
               "id", SqlType.Bigint
               "dataset_slice_id", SqlType.Bigint
               "dataset_slice_title", SqlType.CharacterVaring
-              "dataset_slice_status", SqlType.CharacterVaring ]
+              "dataset_slice_status", SqlType.Integer ]
 
     let selectAll (user: User) (datasetId: int64): ModelCollection<Task> =
         let columnTypes =
@@ -95,7 +95,7 @@ module Model =
                                         | Integer id, CharacterVaring title, CharacterVaring color, Integer status ->
                                             yield { id = id; title = title; color = color; status = status}
                                         | _ ->
-                                            sprintf "unsuppored column type" ]
+                                            printfn "unsuppored column type" ]
 
                                 let taskDatasetSlicesStatement = """
                                 SELECT dataset_slices.id as dataset_slice_id, dataset_slices.title as dataset_slice_title, dataset_slices.status as dataset_slice_status
@@ -118,7 +118,7 @@ module Model =
                                         | Bigint id, CharacterVaring title, Integer status ->
                                             yield { id = id; title = title; status = status}
                                         | _ ->
-                                            sprintf "unsuppored column type" ]
+                                            printfn "unsuppored column type" ]
 
                                 let task =
                                     { id = id
@@ -181,9 +181,9 @@ module Model =
                             let idColumn = row.Item "id"
                             match idColumn with
                             | Bigint id -> yield label
-                            | _ -> sprintf "unexpetec error"
+                            | _ -> printfn "unexpetec error"
                         else
-                            sprintf "unexpected error" ]
+                            printfn "unexpected error" ]
 
                 let taskSlices =
                     [ for slice in createParams.datasetSlices do
@@ -202,9 +202,9 @@ module Model =
                             let idColumn = row.Item "id"
                             match idColumn with
                             | Bigint id -> yield slice
-                            | _ -> sprintf "unexpetec error"
+                            | _ -> printfn "unexpetec error"
                         else
-                            sprintf "unexpected error" ]
+                            printfn "unexpected error" ]
 
                 let task: Task = {
                     id = id
@@ -219,15 +219,17 @@ module Model =
         else
             Error (Exception "unexpected error")
 
-    let selectOne (user: User) (datasetId: int64) (id: int64) : Result<DatasetSlice, exn> =
+    let selectOne (user: User) (datasetId: int64) (taskId: int64) : Result<Task, exn> =
         let statement = """
-        SELECT id, title, status
-        FROM senses.dataset_tasks
-        WHERE user_id=@user_id AND datasetId=@datasetId AND id=@id
+        SELECT tasks.id as id, tasks.status as status, types.id as type_id, types.key as type_key, types.status as type_status
+        FROM senses.dataset_tasks as tasks
+        LEFT JOIN senses.datasets as datasets ON datasets.id = tasks.dataset_id
+        LEFT JOIN senses.task_types as types ON types.id = tasks.task_type_id
+        WHERE datasets.user_id=@user_id AND datasets.id=@dataset_id AND tasks.id=@task_id
         """
         let sql =
             { statement = statement
-              parameters = [("user_id", Bigint user.id); ("dataset_id", Bigint datasetId); ("id", Bigint id)]
+              parameters = [("user_id", Bigint user.id); ("dataset_id", Bigint datasetId); ("task_id", Bigint taskId)]
               columnTypes = tasksTable }
         let rows = Database.execute Database.defaultConnection sql
 
@@ -235,11 +237,65 @@ module Model =
         | 1 ->
             let row = List.head rows
             let idColumn = row.Item "id"
-            let titleColumn = row.Item "title"
             let statusColumn = row.Item "status"
-            match idColumn, titleColumn, statusColumn with
-            | Bigint id, CharacterVaring title, Integer status ->
-                Ok { id = id; title = title; status = status}
+            let typeIdColumn = row.Item "type_id"
+            let typeKeyColumn = row.Item "type_key"
+            let typeStatusColumn = row.Item "type_status"
+            match idColumn, statusColumn, typeIdColumn, typeKeyColumn, typeStatusColumn with
+            | Bigint id, Integer status, Integer typeId, CharacterVaring "label", Integer typeStatus ->
+                let taskLabelsStatement = """
+                SELECT labels.id as label_id, labels.title as label_title, labels.color as label_color, labels.status as label_status
+                FROM senses.task_labels as task_labels
+                LEFT JOIN senses.labels as labels ON labels.id = task_labels.label_id
+                WHERE task_labels.dataset_task_id=@dataset_task_id
+                """
+
+                let taskLabelsSql =
+                    { statement = taskLabelsStatement
+                      parameters = [("dataset_task_id", Bigint taskId)]
+                      columnTypes = taskLabelsTable }
+                let taskLabelsRows = Database.execute Database.defaultConnection taskLabelsSql
+                let taskLabels =
+                    [ for row in taskLabelsRows do
+                        let idColumn = row.Item "label_id"
+                        let titleColumn = row.Item "label_title"
+                        let colorColumn = row.Item "label_color"
+                        let statusColumn = row.Item "label_status"
+                        match idColumn, titleColumn, colorColumn, statusColumn with
+                        | Integer id, CharacterVaring title, CharacterVaring color, Integer status ->
+                            yield { id = id; title = title; color = color; status = status}
+                        | _ ->
+                            printfn "unsuppored column type" ]
+
+                let taskDatasetSlicesStatement = """
+                SELECT dataset_slices.id as dataset_slice_id, dataset_slices.title as dataset_slice_title, dataset_slices.status as dataset_slice_status
+                FROM senses.dataset_slices as dataset_slices
+                LEFT JOIN senses.task_dataset_slices as task_dataset_slices ON dataset_slices.id = task_dataset_slices.dataset_slice_id
+                WHERE task_dataset_slices.dataset_task_id=@dataset_task_id
+                """
+
+                let taskDatasetSlicesSql =
+                    { statement = taskDatasetSlicesStatement
+                      parameters = [("dataset_task_id", Bigint taskId)]
+                      columnTypes = taskDatasetSlicesTable }
+                let taskDatasetSlicesRows = Database.execute Database.defaultConnection taskDatasetSlicesSql
+                let taskDatasetSlices =
+                    [ for row in taskDatasetSlicesRows do
+                        let idColumn = row.Item "dataset_slice_id"
+                        let titleColumn = row.Item "dataset_slice_title"
+                        let statusColumn = row.Item "dataset_slice_status"
+                        match idColumn, titleColumn,statusColumn with
+                        | Bigint id, CharacterVaring title, Integer status ->
+                            yield { id = id; title = title; status = status}
+                        | _ ->
+                            printfn "unsuppored column type" ]
+                let task =
+                    { id = id
+                      ``type`` = { id = typeId; key = TaskTypeKey.Label; status = typeStatus }
+                      labels = { totalCount = int64(List.length taskLabels); items = taskLabels }
+                      datasetSlices = { totalCount = int64(List.length taskDatasetSlices); items = taskDatasetSlices }
+                      status = status }
+                Ok task
             | _ ->
                 Error (Exception ("unmatch column value"))
         | _ ->

@@ -72,35 +72,35 @@ let rec parseColumn (sqlType: SqlType) (value: obj) =
     | SqlType.Smallint ->
         match value with
         | :? int16 as x -> Ok (Smallint x)
-        | _ -> Error "unmatch type and value"
+        | _ -> Error "unmatch type and value: smallint"
     | SqlType.Integer ->
         match value with
         | :? int as x -> Ok (Integer x)
-        | _ -> Error "unmatch type and value"
+        | _ -> Error "unmatch type and value: integer"
     | SqlType.Bigint ->
         match value with
         | :? int64 as x -> Ok (Bigint x)
-        | _ -> Error "unmatch type and value"
+        | _ -> Error "unmatch type and value: bigint"
     | SqlType.Character ->
         match value with
         | :? string as x -> Ok (Character x)
-        | _ -> Error "unmatch type and value"
+        | _ -> Error "unmatch type and value character"
     | SqlType.CharacterVaring ->
         match value with
         | :? string as x -> Ok (CharacterVaring x)
-        | _ -> Error "unmatch type and value"
+        | _ -> Error "unmatch type and value character varing"
     | SqlType.Text ->
         match value with
         | :? string as x -> Ok (Text x)
-        | _ -> Error "unmatch type and value"
+        | _ -> Error "unmatch type and value text"
     | SqlType.Uuid ->
         match value with
         | :? Guid as x -> Ok (Uuid x)
-        | _ -> Error "unmatch type and value"
+        | _ -> Error "unmatch type and value uuid"
     | SqlType.TimestampWithTimeZone ->
         match value with
         | :? DateTime as x -> Ok (TimestampWithTimeZone x)
-        | _ -> Error "unmatch type and value"
+        | _ -> Error "unmatch type and value timestamp"
     | Option sqlType ->
         match value with
         | null -> Ok Null

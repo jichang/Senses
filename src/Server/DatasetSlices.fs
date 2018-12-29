@@ -93,11 +93,11 @@ module Model =
                     | Ok line ->
                         match Resources.Model.create user datasetId id line with
                         | Ok resourceId ->
-                            sprintf "%A" resourceId |> ignore
+                            printfn "%A" resourceId
                         | Error err ->
-                            sprintf "%A" err |> ignore
+                            printfn "%A" err
                     | Error error ->
-                        sprintf "%A" error |> ignore
+                        printfn "%A" error
 
                 Ok { id = id; title = title; status = 0 }
             | _ ->

@@ -21,7 +21,7 @@ type Msg =
     | ChangeTitle of string
     | Choose of obj
     | Submit
-    | CreateResponse of Result<ResourceCreateResponse, exn>
+    | CreateResponse of Result<DatasetSlice, exn>
 
 let init (datasetId: int64) : Model * Cmd<Msg> =
     { uploading = false; title = ""; file = None; datasetId = datasetId }, Cmd.none
@@ -52,7 +52,7 @@ let update (msg: Msg) (model: Model) : Model * Cmd<Msg> =
                     let apiUrl = sprintf "/api/datasets/%d/slices" model.datasetId
 
                     Cmd.ofPromise
-                        (fun _ -> fetchAs apiUrl ResourceCreateResponse.Decoder defaultProps)
+                        (fun _ -> fetchAs apiUrl DatasetSlice.Decoder defaultProps)
                         ()
                         (Ok >> CreateResponse)
                         (Error >> CreateResponse)

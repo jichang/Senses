@@ -38,6 +38,7 @@ type Model =
       datasetSliceCreate: DatasetSliceCreate.Model option
       datasetSliceDetails: DatasetSliceDetails.Model option
       datasetTaskCreate: DatasetTaskCreate.Model option
+      datasetTaskDetails: DatasetTaskDetails.Model option
       labels: Labels.Model option
       labelCreate: LabelCreate.Model option
       tasks: Tasks.Model option }
@@ -52,6 +53,7 @@ type Msg =
     | DatasetSliceCreate of DatasetSliceCreate.Msg
     | DatasetSliceDetails of DatasetSliceDetails.Msg
     | DatasetTaskCreate of DatasetTaskCreate.Msg
+    | DatasetTaskDetails of DatasetTaskDetails.Msg
     | Labels of Labels.Msg
     | LabelCreate of LabelCreate.Msg
     | Tasks of Tasks.Msg
@@ -140,6 +142,9 @@ let initPage (page: Page option) (model: Model) : Model * Cmd<Msg> =
         | None ->
             let datasetTaskCreateModel, datasetTaskCreateCmd = DatasetTaskCreate.init datasetId
             { model with datasetTaskCreate = Some datasetTaskCreateModel; page = page }, Cmd.map DatasetTaskCreate datasetTaskCreateCmd
+    | Some (Page.DatasetTaskDetails (datasetId, datasetTaskId)) ->
+        let datasetTaskDetailsModel, datasetTaskDetailsCmd = DatasetTaskDetails.init datasetId datasetTaskId
+        { model with page = page; datasetTaskDetails = Some datasetTaskDetailsModel }, Cmd.map DatasetTaskDetails datasetTaskDetailsCmd
     | Some Page.Labels ->
         match model.labels with
         | Some _ ->
@@ -179,6 +184,7 @@ let init (page: Page option) : Model * Cmd<Msg> =
           datasetSliceCreate = None
           datasetSliceDetails = None
           datasetTaskCreate = None
+          datasetTaskDetails = None
           labels = None
           labelCreate = None
           tasks = None }
@@ -251,6 +257,9 @@ let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
     | DatasetTaskCreate taskCreateMsg ->
         let taskCreateModel, taskCreateCmd = DatasetTaskCreate.update taskCreateMsg model.datasetTaskCreate.Value
         { model with datasetTaskCreate = Some taskCreateModel }, Cmd.map DatasetTaskCreate taskCreateCmd
+    | DatasetTaskDetails datasetTaskDetailsMsg ->
+        let (datasetTaskDetailsModel, datasetTaskDetailsCmd) = DatasetTaskDetails.update datasetTaskDetailsMsg model.datasetTaskDetails.Value
+        { model with datasetTaskDetails = Some datasetTaskDetailsModel }, Cmd.map DatasetTaskDetails datasetTaskDetailsCmd
     | Labels labelsMsg ->
         let (labelsModel, labelsCmd) = Labels.update labelsMsg model.labels.Value
         { model with labels = Some labelsModel }, Cmd.map Labels labelsCmd
@@ -286,6 +295,8 @@ let view (model : Model) (dispatch : Msg -> unit) =
                     DatasetSliceDetails.view model.datasetSliceDetails.Value (dispatch << Msg.DatasetSliceDetails)
                 | Some (Page.DatasetTaskCreate datasetId) ->
                     DatasetTaskCreate.view model.datasetTaskCreate.Value (dispatch << Msg.DatasetTaskCreate)
+                | Some (Page.DatasetTaskDetails (datasetId, datasetTaskId)) ->
+                    DatasetTaskDetails.view model.datasetTaskDetails.Value (dispatch << Msg.DatasetTaskDetails)
                 | Some Page.Labels ->
                     Labels.view model.labels.Value (dispatch << Msg.Labels)
                 | Some Page.LabelCreate ->

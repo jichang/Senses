@@ -14,7 +14,7 @@ module Router
         | DatasetCreate
         | DatasetDetails of int64
         | DatasetTaskCreate of int64
-        | DatasetTasks of int64
+        | DatasetTaskDetails of int64 * int64
         | DatasetSliceCreate of int64
         | DatasetSliceDetails of int64 * int64
         | Tasks
@@ -33,7 +33,7 @@ module Router
               map DatasetSliceCreate (s "datasets" </> i64 </> s "slices" </> s "create")
               map (curry2 DatasetSliceDetails) (s "datasets" </> i64 </> s "slices" </> i64)
               map DatasetTaskCreate (s "datasets" </> i64 </> s "tasks" </> s "create")
-              map DatasetTasks (s "datasets" </> i64 </> s "tasks")
+              map (curry2 DatasetTaskDetails) (s "datasets" </> i64 </> s "tasks" </> i64)
               map Labels (s "labels")
               map LabelCreate (s "labels" </> s "create")
               map Tasks (s "tasks") ]
