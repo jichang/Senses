@@ -140,6 +140,6 @@ let view (model: Model) (dispatch: Msg -> unit) =
                       div [ classList [("form__control", true) ] ] [ select [ OnChange (fun evt -> chooseUser evt dispatch ); DefaultValue ""] allOptions ] ]
 
                   div [ classList [("form__field", true); ("form__field--submit", true)] ]
-                    [ div [] [ button [ Disabled model.signing ] [ str "Start" ] ] ] ]
+                    [ div [] [ button [ ClassName "button button--block button--solid button--primary"; Disabled model.signing ] [ str "Start" ] ] ] ]
 
         div [] [ SiteLogo.logo; signForm ]

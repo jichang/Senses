@@ -132,9 +132,9 @@ button {
     background-color: transparent;
 }
 
-.button--solid.button--outline {
-    border-color: rgba(0, 0, 0, 0.8);
-    color: rgba(0, 0, 0, 0.8);
+.button--outline.button--primary {
+    border-color: rgba(0, 0, 0, 1);
+    color: rgba(0, 0, 0, 1);
 }
 
 .button--flat {
@@ -145,6 +145,16 @@ button {
     color: rgba(0, 0, 0, 0.8);
 
     background-color: transparent;
+}
+
+.button--round {
+    border-radius: 1rem;
+}
+
+.button--block {
+    display: block;
+
+    width: 100%;
 }
 
 .table.table--fullwidth {
@@ -259,4 +269,35 @@ h4 {
     height: 1rem;
 
     vertical-align: middle;
+}
+
+.editor {
+    margin-top: 1rem;
+    border: 1px solid #f0f0f0;
+}
+
+.editor .asidebar {
+    padding: 0 0.5rem;
+    align-self: flex-start;
+}
+
+.editor svg {
+    display: block;
+    width: 100%;
+}
+
+.asidebar .label {
+    display: block;
+    margin: 0.5rem 0;
+    border: 1px solid currentColor;
+}
+
+.asidebar .label .indicator {
+    display: inline-block;
+    margin-right: 0.5rem;
+
+    width: 0.5rem;
+    height: 0.5rem;
+
+    border-radius: 0.5rem;
 }
