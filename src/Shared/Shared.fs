@@ -363,3 +363,25 @@ module rec Model =
                 [ "version", Encode.string fileLine.version
                   "type", ResourceTypeKey.Encoder fileLine.``type``
                   "source", ResourceSource.Encoder fileLine.source ]
+
+    type Point =
+        { x: float
+          y: float }
+
+    type Circle =
+        { radius: float
+          center: Point }
+
+    type Rectangle =
+        { origin: Point
+          width: float
+          height: float }
+
+    type Polygon =
+        { points: Point list }
+
+    type Shape =
+        | Point of Point
+        | Circle of Circle
+        | Reactangle of Rectangle
+        | Polygon of Polygon

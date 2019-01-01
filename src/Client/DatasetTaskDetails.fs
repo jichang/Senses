@@ -2,9 +2,12 @@ module DatasetTaskDetails
 
 open Shared.Model
 open Elmish
+open Fable.Core
+open Fable.Import.React
 open Fable.Helpers.React
 open Fable.Helpers.React.Props
 open Fable.PowerPack.Fetch
+open Fable.Core.JsInterop
 
 type Tool =
     { iconUrl: string
@@ -34,6 +37,9 @@ type Msg =
     | LoadResources of Result<ModelCollection<Resource>, exn>
     | ChangeTool of Tool
     | ChangeLabel of Label
+    | MouseDown of Point
+    | MouseMove of Point
+    | MouseUp of Point
 
 let init (datasetId: int64) (taskId: int64) : Model * Cmd<Msg> =
     let model =
@@ -87,8 +93,15 @@ let update msg model =
         { model with selectedTool = tool }, Cmd.none
     | ChangeLabel label ->
         { model with selectedLabel = Some label }, Cmd.none
+    | MouseDown point ->
+        printfn "%A" point
+        model, Cmd.none
+    | MouseUp point ->
+        model, Cmd.none
+    | MouseMove point ->
+        model, Cmd.none
 
-let view model dispatch =
+let view (model: Model) dispatch =
     let pageHeader =
         header []
             [ p [] [ a [ Href (sprintf "/datasets/%d" model.datasetId) ] [ str " < " ]; str "Dataset" ] ]
@@ -140,15 +153,50 @@ let view model dispatch =
             [ div [ ClassName "flex__item" ] (List.map toolButton tools)
               div [] [ button [ ClassName "button button--solid button--primary" ] [ str "Save" ] ] ]
 
+    let imageEditor (resource: Resource) =
+        let getPoint (evt: MouseEvent) =
+            let boundRect = evt?target?getBoundingClientRect();
+            { x = evt.pageX - boundRect?left; y = evt.pageY - boundRect?top }
+
+        let dispatchMouseDown (evt: MouseEvent) =
+             MouseDown (getPoint evt)
+             |> dispatch
+
+        let dispatchMouseMove (evt: MouseEvent) =
+             MouseMove (getPoint evt)
+             |> dispatch
+
+        let dispatchMouseUp (evt: MouseEvent) =
+             MouseUp (getPoint evt)
+             |> dispatch
+
+        svg
+            [ OnMouseDown dispatchMouseDown
+              OnMouseMove dispatchMouseMove
+              OnMouseUp dispatchMouseUp ]
+            [ image [ XlinkHref resource.uri ] [] ]
+
+    let videoEditor (resource: Resource) =
+        video [] []
+
+    let textEditor (resource: Resource) =
+        textarea [] []
+
     let editor =
-        let contentArea =
+        let editor =
             match List.tryItem ((int)model.pagination.currentPage) model.resources.items with
             | Some resource ->
-                svg [] [ image [ XlinkHref resource.uri ] [] ]
+                match resource.``type``.key with
+                | ResourceTypeKey.Image ->
+                    imageEditor resource
+                | ResourceTypeKey.Video ->
+                    videoEditor resource
+                | ResourceTypeKey.Text ->
+                    textEditor resource
             | None ->
-                div [] []
+                div [ ] [ str "no such resource" ]
         div [ ClassName "flex__box editor" ]
-            [ div [ ClassName "flex__item" ] [ contentArea ]
+            [ div [ ClassName "flex__item" ] [ div [ ClassName "square" ]  [ div [ ClassName "content" ] [ editor ] ] ]
               div [ ClassName "asidebar" ] labelsView ]
 
     div []

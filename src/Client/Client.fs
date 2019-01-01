@@ -303,6 +303,8 @@ let view (model : Model) (dispatch : Msg -> unit) =
                     LabelCreate.view model.labelCreate.Value (dispatch << Msg.LabelCreate)
                 | Some Page.Tasks ->
                     Tasks.view model.tasks.Value (dispatch << Msg.Tasks)
+                | None ->
+                    div [] []
             | Error _ ->
                 match model.sign with
                 | Some signModel ->

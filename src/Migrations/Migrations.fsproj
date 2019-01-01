@@ -19,7 +19,7 @@
     <Compile Include="20180912210512_CreateLabelsTable.fs" />
     <Compile Include="20181226163934_CreateTaskLabelsTable.fs" />
     <Compile Include="20181226165634_CreateTaskDatasetSlicesTable.fs" />
-    <Compile Include="20181229120512_CreateLabelGroupsTable.fs" />
+    <Compile Include="20181231112512_CreateResourceLabels.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
