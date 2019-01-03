@@ -1,6 +1,5 @@
 module DatasetTaskDetails
 
-open Shared.Model
 open Elmish
 open Fable.Core
 open Fable.Import.React
@@ -8,16 +7,24 @@ open Fable.Helpers.React
 open Fable.Helpers.React.Props
 open Fable.PowerPack.Fetch
 open Fable.Core.JsInterop
+open Shared.Model
+
+type ShapeType =
+    | Rectangle
+    | Circle
+    | Polygon
+    | Point
 
 type Tool =
-    { iconUrl: string
+    { shapeType: ShapeType
+      iconUrl: string
       title: string }
 
 let tools =
-    [ { iconUrl = "/images/square.svg"; title = "Square"}
-      { iconUrl = "/images/circle.svg"; title = "Circle"}
-      { iconUrl = "/images/polygon.svg"; title = "Polygon"}
-      { iconUrl = "/images/point.svg"; title = "Point"} ]
+    [ { shapeType = ShapeType.Circle; iconUrl = "/images/circle.svg"; title = "Circle"}
+      { shapeType = ShapeType.Rectangle; iconUrl = "/images/square.svg"; title = "Rectangle"}
+      { shapeType = ShapeType.Polygon; iconUrl = "/images/polygon.svg"; title = "Polygon"}
+      { shapeType = ShapeType.Point; iconUrl = "/images/point.svg"; title = "Point"} ]
 
 type Pagination =
     { currentPage: int64 }
@@ -30,7 +37,10 @@ type Model =
       resources: ModelCollection<Resource>
       pagination: Pagination
       selectedTool: Tool
-      selectedLabel: Label option }
+      selectedLabel: Label option
+      points: Point list
+      resourceLabels: ResourceLabel list
+      marking: bool }
 
 type Msg =
     | LoadTask of Result<Task, exn>
@@ -50,7 +60,10 @@ let init (datasetId: int64) (taskId: int64) : Model * Cmd<Msg> =
           resources = { totalCount = 0L; items = [] }
           pagination = { currentPage = 0L }
           selectedTool = tools.[0]
-          selectedLabel = None }
+          selectedLabel = None
+          points = List.empty
+          resourceLabels = List.empty
+          marking = false }
 
 
     let session: Result<Session, string>  = Token.load ()
@@ -83,6 +96,22 @@ let init (datasetId: int64) (taskId: int64) : Model * Cmd<Msg> =
     | _ ->
         model, Cmd.none
 
+let createCircle (startPoint: Point) (lastPoint: Point) =
+    let centerX = (startPoint.x + lastPoint.x) / 2.0
+    let centerY = (startPoint.y + lastPoint.y) / 2.0
+    let xOffset = abs (startPoint.x - lastPoint.x)
+    let yOffset = abs (startPoint.y - lastPoint.y)
+    let radius = sqrt (xOffset * xOffset + yOffset * yOffset)
+    let center = { x = centerX; y = centerY }
+    Shape.Circle { center = center; radius = radius / 2.0}
+
+let createRectangle (startPoint: Point) (lastPoint: Point) =
+    let originX = min startPoint.x lastPoint.x
+    let originY = min startPoint.y lastPoint.y
+    let width = abs (startPoint.x - lastPoint.x)
+    let height = abs (startPoint.y - lastPoint.y)
+    Shape.Rectangle { origin = { x = originX; y = originY }; width = width; height = height }
+
 let update msg model =
     match msg with
     | LoadTask (Ok task) ->
@@ -94,12 +123,50 @@ let update msg model =
     | ChangeLabel label ->
         { model with selectedLabel = Some label }, Cmd.none
     | MouseDown point ->
-        printfn "%A" point
-        model, Cmd.none
-    | MouseUp point ->
-        model, Cmd.none
+        match model.selectedTool.shapeType with
+        | Circle
+        | Rectangle ->
+            { model with points = [point]; marking = true}, Cmd.none
+        | _ ->
+            model, Cmd.none
     | MouseMove point ->
-        model, Cmd.none
+        if model.marking then
+            match model.selectedTool.shapeType with
+            | Circle
+            | Rectangle ->
+                let points =
+                    List.append model.points [point]
+                { model with points = points}, Cmd.none
+            | _ ->
+                model, Cmd.none
+        else
+            model, Cmd.none
+    | MouseUp point ->
+        match model.selectedTool.shapeType with
+        | Circle ->
+            match model.selectedLabel with
+            | Some label ->
+                let startPoint = List.head model.points
+                let circle = createCircle startPoint point
+                let resourceLabel =
+                    { label = label
+                      shape = circle }
+                { model with points = List.empty; resourceLabels = List.append model.resourceLabels [resourceLabel]; marking = false }, Cmd.none
+            | None ->
+                { model with points = List.empty; marking = false }, Cmd.none
+        | Rectangle ->
+            match model.selectedLabel with
+            | Some label ->
+                let startPoint = List.head model.points
+                let square = createRectangle startPoint point
+                let resourceLabel =
+                    { label = label
+                      shape = square }
+                { model with points = List.empty; resourceLabels = List.append model.resourceLabels [resourceLabel]; marking = false }, Cmd.none
+            | None ->
+                { model with points = List.empty; marking = false }, Cmd.none
+        | _ ->
+            { model with marking = false }, Cmd.none
 
 let view (model: Model) dispatch =
     let pageHeader =
@@ -158,23 +225,69 @@ let view (model: Model) dispatch =
             let boundRect = evt?target?getBoundingClientRect();
             { x = evt.pageX - boundRect?left; y = evt.pageY - boundRect?top }
 
-        let dispatchMouseDown (evt: MouseEvent) =
-             MouseDown (getPoint evt)
-             |> dispatch
+        let dispatchMouseEvent msg (evt: MouseEvent) =
+            if evt?currentTarget?nodeName = "svg" then
+                getPoint evt
+                |> msg
+                |> dispatch
 
-        let dispatchMouseMove (evt: MouseEvent) =
-             MouseMove (getPoint evt)
-             |> dispatch
+        let resourceLabelView (resourceLabel: ResourceLabel) =
+            match resourceLabel.shape with
+            | Shape.Circle c ->
+                circle [ Cx c.center.x; Cy c.center.y; R c.radius; SVGAttr.Stroke resourceLabel.label.color; SVGAttr.StrokeWidth "1"; SVGAttr.Fill "transparent" ] []
+            | Shape.Rectangle s ->
+                rect [ X s.origin.x; Y s.origin.y; SVGAttr.Width s.width; SVGAttr.Height s.height; SVGAttr.Stroke resourceLabel.label.color; SVGAttr.StrokeWidth "1"; SVGAttr.Fill "transparent" ] []
+            | _ ->
+                div [] []
 
-        let dispatchMouseUp (evt: MouseEvent) =
-             MouseUp (getPoint evt)
-             |> dispatch
+        let resourceLabelViews =
+            List.map resourceLabelView model.resourceLabels
+
+        let imageView = image [ XlinkHref resource.uri ] []
+
+        let currentShape =
+            match model.selectedTool.shapeType with
+            | ShapeType.Circle ->
+                if model.points.Length > 2 then
+                    let firstPoint = List.head model.points
+                    let lastPoint = List.last model.points
+                    let circle = createCircle firstPoint lastPoint
+
+                    match model.selectedLabel with
+                    | Some label ->
+                        let labelView = resourceLabelView { label = label; shape = circle }
+                        [labelView]
+                    | _ ->
+                        []
+                else
+                    []
+            | ShapeType.Rectangle ->
+                if model.points.Length > 2 then
+                    let firstPoint = List.head model.points
+                    let lastPoint = List.last model.points
+                    let square = createRectangle firstPoint lastPoint
+
+                    match model.selectedLabel with
+                    | Some label ->
+                        let labelView = resourceLabelView { label = label; shape = square }
+                        [labelView]
+                    | _ ->
+                        []
+                else
+                    []
+            | _ ->
+                []
+
+        let childViews =
+            resourceLabelViews
+            |> List.append currentShape
+            |> List.append [ imageView ]
 
         svg
-            [ OnMouseDown dispatchMouseDown
-              OnMouseMove dispatchMouseMove
-              OnMouseUp dispatchMouseUp ]
-            [ image [ XlinkHref resource.uri ] [] ]
+            [ OnMouseDown (dispatchMouseEvent MouseDown)
+              OnMouseMove (dispatchMouseEvent MouseMove)
+              OnMouseUp (dispatchMouseEvent MouseUp) ]
+            childViews
 
     let videoEditor (resource: Resource) =
         video [] []

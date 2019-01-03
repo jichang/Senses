@@ -383,5 +383,9 @@ module rec Model =
     type Shape =
         | Point of Point
         | Circle of Circle
-        | Reactangle of Rectangle
+        | Rectangle of Rectangle
         | Polygon of Polygon
+
+    type ResourceLabel =
+        { label: Label
+          shape: Shape }
