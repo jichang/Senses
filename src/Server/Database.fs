@@ -45,6 +45,7 @@ type SqlType =
     | Character
     | Uuid
     | TimestampWithTimeZone
+    | Json
     | Option of SqlType
 
 type SqlData =
@@ -56,6 +57,7 @@ type SqlData =
     | Character of string
     | Uuid of Guid
     | TimestampWithTimeZone of DateTime
+    | Json of string
     | Null
 
 type Sql =
@@ -101,6 +103,10 @@ let rec parseColumn (sqlType: SqlType) (value: obj) =
         match value with
         | :? DateTime as x -> Ok (TimestampWithTimeZone x)
         | _ -> Error "unmatch type and value timestamp"
+    | SqlType.Json ->
+        match value with
+        | :? string as x -> Ok (Json x)
+        | _ -> Error "unmatch type and value text"
     | Option sqlType ->
         match value with
         | null -> Ok Null
@@ -156,6 +162,8 @@ let execute (conn: Connection) (sql: Sql) : Table =
                 NpgsqlDbType.Char, value :> obj
             | Uuid value ->
                 NpgsqlDbType.Uuid, value :> obj
+            | Json value ->
+                NpgsqlDbType.Json, value :> obj
             | TimestampWithTimeZone value ->
                 NpgsqlDbType.TimestampTz, value :> obj
             | Null ->

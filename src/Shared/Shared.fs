@@ -380,12 +380,19 @@ module rec Model =
     type Polygon =
         { points: Point list }
 
+    type Polyline =
+        { points: Point list }
+
     type Shape =
         | Point of Point
         | Circle of Circle
         | Rectangle of Rectangle
         | Polygon of Polygon
+        | Polyline of Polyline
 
     type ResourceLabel =
         { label: Label
           shape: Shape }
+
+    type ResourceLabelsCreateParams =
+        { labels: ResourceLabel list }

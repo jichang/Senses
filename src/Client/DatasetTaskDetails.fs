@@ -7,12 +7,14 @@ open Fable.Helpers.React
 open Fable.Helpers.React.Props
 open Fable.PowerPack.Fetch
 open Fable.Core.JsInterop
+open Thoth.Json
 open Shared.Model
 
 type ShapeType =
     | Rectangle
     | Circle
     | Polygon
+    | Polyline
     | Point
 
 type Tool =
@@ -24,6 +26,7 @@ let tools =
     [ { shapeType = ShapeType.Circle; iconUrl = "/images/circle.svg"; title = "Circle"}
       { shapeType = ShapeType.Rectangle; iconUrl = "/images/square.svg"; title = "Rectangle"}
       { shapeType = ShapeType.Polygon; iconUrl = "/images/polygon.svg"; title = "Polygon"}
+      { shapeType = ShapeType.Polyline; iconUrl = "/images/polygon.svg"; title = "Polyline"}
       { shapeType = ShapeType.Point; iconUrl = "/images/point.svg"; title = "Point"} ]
 
 type Pagination =
@@ -40,16 +43,20 @@ type Model =
       selectedLabel: Label option
       points: Point list
       resourceLabels: ResourceLabel list
-      marking: bool }
+      marking: bool 
+      creating: bool }
 
 type Msg =
     | LoadTask of Result<Task, exn>
     | LoadResources of Result<ModelCollection<Resource>, exn>
+    | LoadResourceLabels of Result<ModelCollection<ResourceLabel>, exn>
     | ChangeTool of Tool
     | ChangeLabel of Label
     | MouseDown of Point
     | MouseMove of Point
     | MouseUp of Point
+    | Save
+    | SaveResponse of Result<Response, exn>
 
 let init (datasetId: int64) (taskId: int64) : Model * Cmd<Msg> =
     let model =
@@ -63,7 +70,8 @@ let init (datasetId: int64) (taskId: int64) : Model * Cmd<Msg> =
           selectedLabel = None
           points = List.empty
           resourceLabels = List.empty
-          marking = false }
+          marking = false
+          creating = false }
 
 
     let session: Result<Session, string>  = Token.load ()
@@ -112,61 +120,129 @@ let createRectangle (startPoint: Point) (lastPoint: Point) =
     let height = abs (startPoint.y - lastPoint.y)
     Shape.Rectangle { origin = { x = originX; y = originY }; width = width; height = height }
 
+let createPolygon (points: Point list) =
+    Shape.Polygon { points = points }
+
+let createPolyline (points: Point list) =
+    Shape.Polyline { points = points }
+
 let update msg model =
     match msg with
     | LoadTask (Ok task) ->
         { model with task = Some task; selectedLabel = Some task.labels.items.[0] }, Cmd.none
     | LoadResources (Ok resources) ->
-        { model with resources = resources }, Cmd.none
+        let cmd =
+            match List.length resources.items with
+            | 0 ->
+                Cmd.none
+            | _ ->
+                let session: Result<Session, string>  = Token.load ()
+                match session with
+                | Ok session ->
+                    let authorization = sprintf "Bearer %s" session.token
+                    let defaultProps =
+                        [ RequestProperties.Method HttpMethod.GET
+                          requestHeaders
+                              [ ContentType "application/json" 
+                                Authorization authorization ] ]
+                    let resource = resources.items.[0]
+                    let url = sprintf "/api/datasets/%d/tasks/%d/resources/%d/labels" model.datasetId model.taskId resource.id
+                    let decoder = Decode.Auto.generateDecoder<ModelCollection<ResourceLabel>>()
+                    Cmd.ofPromise
+                        (fun _ -> fetchAs url decoder defaultProps)
+                        ()
+                        (Ok >> LoadResourceLabels)
+                        (Error >> LoadResourceLabels)
+                | Error _ ->
+                    Cmd.none
+
+        { model with resources = resources }, cmd
+    | LoadResourceLabels (Ok resourceLabels) ->
+        { model with resourceLabels = resourceLabels.items }, Cmd.none
     | ChangeTool tool ->
         { model with selectedTool = tool }, Cmd.none
     | ChangeLabel label ->
         { model with selectedLabel = Some label }, Cmd.none
     | MouseDown point ->
         match model.selectedTool.shapeType with
+        | Point
         | Circle
-        | Rectangle ->
+        | Rectangle
+        | Polygon
+        | Polyline ->
             { model with points = [point]; marking = true}, Cmd.none
-        | _ ->
-            model, Cmd.none
     | MouseMove point ->
         if model.marking then
             match model.selectedTool.shapeType with
+            | Point
             | Circle
-            | Rectangle ->
+            | Rectangle
+            | Polygon
+            | Polyline ->
                 let points =
                     List.append model.points [point]
                 { model with points = points}, Cmd.none
-            | _ ->
-                model, Cmd.none
         else
             model, Cmd.none
     | MouseUp point ->
-        match model.selectedTool.shapeType with
-        | Circle ->
-            match model.selectedLabel with
-            | Some label ->
+        match model.selectedLabel with
+        | Some label ->
+            match model.selectedTool.shapeType with
+            | Point ->
+                let resourceLabel =
+                    { label = label
+                      shape = Shape.Point point }
+                { model with points = List.empty; resourceLabels = List.append model.resourceLabels [resourceLabel]; marking = false }, Cmd.none                
+            | Circle ->
                 let startPoint = List.head model.points
                 let circle = createCircle startPoint point
                 let resourceLabel =
                     { label = label
                       shape = circle }
                 { model with points = List.empty; resourceLabels = List.append model.resourceLabels [resourceLabel]; marking = false }, Cmd.none
-            | None ->
-                { model with points = List.empty; marking = false }, Cmd.none
-        | Rectangle ->
-            match model.selectedLabel with
-            | Some label ->
+            | Rectangle ->
                 let startPoint = List.head model.points
                 let square = createRectangle startPoint point
                 let resourceLabel =
                     { label = label
                       shape = square }
                 { model with points = List.empty; resourceLabels = List.append model.resourceLabels [resourceLabel]; marking = false }, Cmd.none
-            | None ->
-                { model with points = List.empty; marking = false }, Cmd.none
+            | _ ->
+                { model with marking = false }, Cmd.none            
+        | None ->
+            { model with points = List.empty; marking = false }, Cmd.none
+    | Save ->
+        let session: Result<Session, string>  = Token.load ()
+        match session with
+        | Ok session ->
+            let cmd =
+                let createParams: ResourceLabelsCreateParams =
+                    { labels = model.resourceLabels }
+
+                let authorization = sprintf "Bearer %s" session.token
+                let body = Encode.Auto.toString (0, createParams)
+                let defaultProps =
+                    [ RequestProperties.Method HttpMethod.POST
+                      requestHeaders
+                          [ ContentType "application/json" 
+                            Authorization authorization ]
+                      RequestProperties.Body <| unbox body ]
+
+                let resource = model.resources.items.[(int)model.pagination.currentPage]
+                let url = sprintf "/api/datasets/%d/tasks/%d/resources/%d/labels" model.datasetId model.taskId resource.id
+                Cmd.ofPromise
+                    (fun _ -> fetch url defaultProps)
+                    ()
+                    (Ok >> SaveResponse)
+                    (Error >> SaveResponse)
+
+            { model with creating = true }, cmd
         | _ ->
-            { model with marking = false }, Cmd.none
+            model, Cmd.none
+    | SaveResponse (Ok labels) ->
+        model, Cmd.none
+    | _ ->
+        model, Cmd.none
 
 let view (model: Model) dispatch =
     let pageHeader =
@@ -218,7 +294,7 @@ let view (model: Model) dispatch =
     let toolbar =
         div [ ClassName "flex__box" ]
             [ div [ ClassName "flex__item" ] (List.map toolButton tools)
-              div [] [ button [ ClassName "button button--solid button--primary" ] [ str "Save" ] ] ]
+              div [] [ button [ OnClick (fun evt -> dispatch Save); ClassName "button button--solid button--primary" ] [ str "Save" ] ] ]
 
     let imageEditor (resource: Resource) =
         let getPoint (evt: MouseEvent) =
@@ -233,6 +309,8 @@ let view (model: Model) dispatch =
 
         let resourceLabelView (resourceLabel: ResourceLabel) =
             match resourceLabel.shape with
+            | Shape.Point p ->
+                circle [ Cx p.x; Cy p.y; R 2; SVGAttr.Stroke resourceLabel.label.color; SVGAttr.StrokeWidth "1"; SVGAttr.Fill resourceLabel.label.color ] []
             | Shape.Circle c ->
                 circle [ Cx c.center.x; Cy c.center.y; R c.radius; SVGAttr.Stroke resourceLabel.label.color; SVGAttr.StrokeWidth "1"; SVGAttr.Fill "transparent" ] []
             | Shape.Rectangle s ->
