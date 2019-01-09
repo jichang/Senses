@@ -105,13 +105,16 @@ let rec parseColumn (sqlType: SqlType) (value: obj) =
         | _ -> Error "unmatch type and value timestamp"
     | SqlType.Json ->
         match value with
-        | :? string as x -> Ok (Json x)
-        | _ -> Error "unmatch type and value text"
-    | Option sqlType ->
+        | :? string as x -> Ok (SqlData.Json x)
+        | _ ->
+            printfn "%A" (value.GetType())
+            Error "unmatch type and value json"
+    | SqlType.Option sqlType ->
         match value with
+        | :? System.DBNull
         | null -> Ok Null
         | _ ->
-            parseColumn sqlType value
+            parseColumn sqlType (box value)
 
 let private readRow (columnTypes: Map<string, SqlType>) (reader: NpgsqlDataReader): Result<Row, exn> =
     try

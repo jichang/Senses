@@ -17,6 +17,7 @@
     <Compile Include="Tasks.fs" />
     <Compile Include="DatasetSlices.fs" />
     <Compile Include="TaskResources.fs" />
+    <Compile Include="TaskResults.fs" />
     <Compile Include="DatasetTasks.fs" />
     <Compile Include="Datasets.fs" />
     <Compile Include="Labels.fs" />

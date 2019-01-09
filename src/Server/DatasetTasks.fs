@@ -350,6 +350,7 @@ module Controller =
 
 let controller (datasetId: int64) = controller {
     subController "/resources" (TaskResources.controller datasetId)
+    subController "/results" (TaskResults.controller datasetId)
 
     index (Controller.indexAction datasetId)
     create (Controller.createAction datasetId)

@@ -396,3 +396,12 @@ module rec Model =
 
     type ResourceLabelsCreateParams =
         { labels: ResourceLabel list }
+
+    type Result =
+        { title: string
+          shape: Shape }
+
+    type ResourceLabels =
+        { uri: string
+          content: string
+          results: Result list }

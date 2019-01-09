@@ -5,6 +5,7 @@ open Elmish
 open Fable.Helpers.React
 open Fable.Helpers.React.Props
 open Fable.PowerPack.Fetch
+open Thoth.Json
 
 type Model =
     { loading: bool
@@ -12,6 +13,8 @@ type Model =
 
 type Msg =
     | LoadDatasetResponse of Result<Dataset, exn>
+    | DownloadResults of int64 * int64
+    | LoadResults of Result<ResourceLabels list, exn>
 
 type InitData =
     | Dataset of Dataset
@@ -56,6 +59,30 @@ let update msg model =
         { model with loading = false; dataset = Some dataset}, Cmd.none
     | LoadDatasetResponse (Error err) ->
         { model with loading = false}, Cmd.none
+    | DownloadResults (datasetId, taskId) ->
+        let session: Result<Session, string>  = Token.load ()
+        match session with
+        | Ok session ->
+            let cmd = 
+                let authorization = sprintf "Bearer %s" session.token
+                let defaultProps =
+                    [ RequestProperties.Method HttpMethod.GET
+                      requestHeaders
+                          [ ContentType "application/json" 
+                            Authorization authorization ] ]
+
+                let decoder = Decode.Auto.generateDecoder<ResourceLabels list>()
+                let url = sprintf "/api/datasets/%d/tasks/%d/results" datasetId taskId
+                Cmd.ofPromise
+                    (fun _ -> fetchAs url decoder defaultProps)
+                    ()
+                    (Ok >> LoadResults)
+                    (Error >> LoadResults)
+            model, cmd
+        | Error error ->
+            model, Cmd.none
+    | _ ->
+        model, Cmd.none
 
 let view model dispatch =
     if model.loading then
@@ -89,7 +116,10 @@ let view model dispatch =
                         tr []
                             [ td [] [str (task.id.ToString())]
                               td [] [str typeString ]
-                              td [ ClassName "text--right" ] [ a [ Href (sprintf "/datasets/%d/tasks/%d" dataset.id task.id) ] [ str "Details" ] ] ]
+                              td [ ClassName "text--right" ]
+                                 [ a [ Href (sprintf "/datasets/%d/tasks/%d" dataset.id task.id) ] [ str "Details" ]
+                                   button [ ClassName "button button--flat"; OnClick (fun evt -> dispatch (DownloadResults (dataset.id, task.id))) ] [ str "Download" ] ] ]
+
                     let rows =
                         List.map row dataset.tasks.items
                     tbody [] rows
