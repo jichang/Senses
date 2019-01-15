@@ -104,14 +104,17 @@ let init (datasetId: int64) (taskId: int64) : Model * Cmd<Msg> =
     | _ ->
         model, Cmd.none
 
+let caculateDistance (pointA: Point) (pointB: Point) =
+    let xOffset = abs (pointA.x - pointB.x)
+    let yOffset = abs (pointA.y - pointB.y)
+    sqrt (xOffset * xOffset + yOffset * yOffset)
+
 let createCircle (startPoint: Point) (lastPoint: Point) =
     let centerX = (startPoint.x + lastPoint.x) / 2.0
     let centerY = (startPoint.y + lastPoint.y) / 2.0
-    let xOffset = abs (startPoint.x - lastPoint.x)
-    let yOffset = abs (startPoint.y - lastPoint.y)
-    let radius = sqrt (xOffset * xOffset + yOffset * yOffset)
+    let distance = caculateDistance startPoint lastPoint
     let center = { x = centerX; y = centerY }
-    Shape.Circle { center = center; radius = radius / 2.0}
+    Shape.Circle { center = center; radius = distance / 2.0}
 
 let createRectangle (startPoint: Point) (lastPoint: Point) =
     let originX = min startPoint.x lastPoint.x
@@ -160,7 +163,7 @@ let update msg model =
     | LoadResourceLabels (Ok resourceLabels) ->
         { model with resourceLabels = resourceLabels.items }, Cmd.none
     | ChangeTool tool ->
-        { model with selectedTool = tool }, Cmd.none
+        { model with selectedTool = tool; points = List.empty }, Cmd.none
     | ChangeLabel label ->
         { model with selectedLabel = Some label }, Cmd.none
     | MouseDown point ->
@@ -168,20 +171,22 @@ let update msg model =
         | Point
         | Circle
         | Rectangle
-        | Polygon
         | Polyline ->
             { model with points = [point]; marking = true}, Cmd.none
+        | Polygon ->
+            { model with marking = true }, Cmd.none
     | MouseMove point ->
         if model.marking then
             match model.selectedTool.shapeType with
             | Point
             | Circle
             | Rectangle
-            | Polygon
             | Polyline ->
                 let points =
                     List.append model.points [point]
                 { model with points = points}, Cmd.none
+            | Polygon ->
+                model, Cmd.none
         else
             model, Cmd.none
     | MouseUp point ->
@@ -207,8 +212,22 @@ let update msg model =
                     { label = label
                       shape = square }
                 { model with points = List.empty; resourceLabels = List.append model.resourceLabels [resourceLabel]; marking = false }, Cmd.none
-            | _ ->
-                { model with marking = false }, Cmd.none            
+            | Polygon ->
+                match List.tryHead model.points with
+                | Some firstPoint ->
+                    let distance = caculateDistance firstPoint point
+                    if distance < 3.0 then
+                        let shape = createPolygon model.points
+                        let resourceLabel =
+                            { label = label
+                              shape = shape }
+                        { model with points = List.empty; resourceLabels = List.append model.resourceLabels [resourceLabel]; marking = false }, Cmd.none
+                    else
+                        { model with points = List.append model.points [point]; marking = false }, Cmd.none
+                | None ->
+                    { model with points = List.append model.points [point]; marking = false }, Cmd.none
+            | Polyline ->
+                { model with points = List.append model.points [point]; marking = false }, Cmd.none
         | None ->
             { model with points = List.empty; marking = false }, Cmd.none
     | Save ->
@@ -298,7 +317,7 @@ let view (model: Model) dispatch =
 
     let imageEditor (resource: Resource) =
         let getPoint (evt: MouseEvent) =
-            let boundRect = evt?target?getBoundingClientRect();
+            let boundRect = evt?currentTarget?getBoundingClientRect();
             { x = evt.pageX - boundRect?left; y = evt.pageY - boundRect?top }
 
         let dispatchMouseEvent msg (evt: MouseEvent) =
@@ -315,8 +334,12 @@ let view (model: Model) dispatch =
                 circle [ Cx c.center.x; Cy c.center.y; R c.radius; SVGAttr.Stroke resourceLabel.label.color; SVGAttr.StrokeWidth "1"; SVGAttr.Fill "transparent" ] []
             | Shape.Rectangle s ->
                 rect [ X s.origin.x; Y s.origin.y; SVGAttr.Width s.width; SVGAttr.Height s.height; SVGAttr.Stroke resourceLabel.label.color; SVGAttr.StrokeWidth "1"; SVGAttr.Fill "transparent" ] []
-            | _ ->
-                div [] []
+            | Shape.Polygon p ->
+                let points = List.map (fun point -> sprintf "%f,%f " point.x point.y) p.points |> String.concat " "
+                polygon [ SVGAttr.Points points; SVGAttr.Stroke resourceLabel.label.color; SVGAttr.StrokeWidth "1"; SVGAttr.Fill "transparent" ] []
+            | Shape.Polyline p ->
+                let points = List.map (fun point -> sprintf "%f %f " point.x point.y) p.points |> String.concat " "
+                polyline [ SVGAttr.Points points; SVGAttr.Stroke resourceLabel.label.color; SVGAttr.StrokeWidth "1"; SVGAttr.Fill "transparent" ] []
 
         let resourceLabelViews =
             List.map resourceLabelView model.resourceLabels
@@ -343,11 +366,33 @@ let view (model: Model) dispatch =
                 if model.points.Length > 2 then
                     let firstPoint = List.head model.points
                     let lastPoint = List.last model.points
-                    let square = createRectangle firstPoint lastPoint
+                    let rectangle = createRectangle firstPoint lastPoint
 
                     match model.selectedLabel with
                     | Some label ->
-                        let labelView = resourceLabelView { label = label; shape = square }
+                        let labelView = resourceLabelView { label = label; shape = rectangle }
+                        [labelView]
+                    | _ ->
+                        []
+                else
+                    []
+            | ShapeType.Polygon ->
+                if model.points.Length >= 2 then
+                    let polyline = createPolyline model.points
+                    match model.selectedLabel with
+                    | Some label ->
+                        let labelView = resourceLabelView { label = label; shape = polyline }
+                        [labelView]
+                    | _ ->
+                        []
+                else
+                    []
+            | ShapeType.Polyline ->
+                if model.points.Length >= 2 then
+                    let polyline = createPolyline model.points
+                    match model.selectedLabel with
+                    | Some label ->
+                        let labelView = resourceLabelView { label = label; shape = polyline }
                         [labelView]
                     | _ ->
                         []
