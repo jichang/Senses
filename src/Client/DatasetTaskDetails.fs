@@ -195,21 +195,24 @@ let update msg model =
             match model.selectedTool.shapeType with
             | Point ->
                 let resourceLabel =
-                    { label = label
+                    { id = None
+                      label = label
                       shape = Shape.Point point }
                 { model with points = List.empty; resourceLabels = List.append model.resourceLabels [resourceLabel]; marking = false }, Cmd.none                
             | Circle ->
                 let startPoint = List.head model.points
                 let circle = createCircle startPoint point
                 let resourceLabel =
-                    { label = label
+                    { id = None
+                      label = label
                       shape = circle }
                 { model with points = List.empty; resourceLabels = List.append model.resourceLabels [resourceLabel]; marking = false }, Cmd.none
             | Rectangle ->
                 let startPoint = List.head model.points
                 let square = createRectangle startPoint point
                 let resourceLabel =
-                    { label = label
+                    { id = None
+                      label = label
                       shape = square }
                 { model with points = List.empty; resourceLabels = List.append model.resourceLabels [resourceLabel]; marking = false }, Cmd.none
             | Polygon ->
@@ -219,7 +222,8 @@ let update msg model =
                     if distance < 3.0 then
                         let shape = createPolygon model.points
                         let resourceLabel =
-                            { label = label
+                            { id = None
+                              label = label
                               shape = shape }
                         { model with points = List.empty; resourceLabels = List.append model.resourceLabels [resourceLabel]; marking = false }, Cmd.none
                     else
@@ -269,7 +273,7 @@ let view (model: Model) dispatch =
             [ p [] [ a [ Href (sprintf "/datasets/%d" model.datasetId) ] [ str " < " ]; str "Dataset" ] ]
 
     let labelView (label: Label) =
-        let isSelected label =
+        let isSelected (label: Label) =
             match model.selectedLabel with
             | Some selectedLabel ->
                  selectedLabel.id = label.id
@@ -286,7 +290,7 @@ let view (model: Model) dispatch =
         let style =
             [ Color label.color ]
 
-        let indicatorColor label =
+        let indicatorColor (label: Label) =
             if isSelected label then label.color else "tranparent"
 
         button [ Style style; classes; OnClick (fun evt -> dispatch (ChangeLabel label)) ]
@@ -356,7 +360,7 @@ let view (model: Model) dispatch =
 
                     match model.selectedLabel with
                     | Some label ->
-                        let labelView = resourceLabelView { label = label; shape = circle }
+                        let labelView = resourceLabelView { id = None; label = label; shape = circle }
                         [labelView]
                     | _ ->
                         []
@@ -370,7 +374,7 @@ let view (model: Model) dispatch =
 
                     match model.selectedLabel with
                     | Some label ->
-                        let labelView = resourceLabelView { label = label; shape = rectangle }
+                        let labelView = resourceLabelView { id = None; label = label; shape = rectangle }
                         [labelView]
                     | _ ->
                         []
@@ -381,7 +385,7 @@ let view (model: Model) dispatch =
                     let polyline = createPolyline model.points
                     match model.selectedLabel with
                     | Some label ->
-                        let labelView = resourceLabelView { label = label; shape = polyline }
+                        let labelView = resourceLabelView { id = None; label = label; shape = polyline }
                         [labelView]
                     | _ ->
                         []
@@ -392,7 +396,7 @@ let view (model: Model) dispatch =
                     let polyline = createPolyline model.points
                     match model.selectedLabel with
                     | Some label ->
-                        let labelView = resourceLabelView { label = label; shape = polyline }
+                        let labelView = resourceLabelView { id = None; label = label; shape = polyline }
                         [labelView]
                     | _ ->
                         []

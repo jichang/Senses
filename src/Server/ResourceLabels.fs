@@ -12,7 +12,7 @@ open Thoth.Json.Net
 module Model =
     let resourceLabelsTable =
         Map.ofList
-            [ "id", SqlType.Integer
+            [ "id", SqlType.Bigint
               "user_id", SqlType.Bigint
               "resource_id", SqlType.Bigint
               "dataset_id", SqlType.Bigint
@@ -29,11 +29,12 @@ module Model =
             Map.add "total_count" SqlType.Bigint resourceLabelsTable
         let statement = """
         SELECT
+          resource_labels.id as id,
+          resource_labels.shape as shape,
           labels.id as label_id,
           labels.title as label_title,
           labels.color as label_color,
           labels.status as label_status,
-          resource_labels.shape as shape,
           count(*) OVER() AS total_count
         FROM senses.resource_labels as resource_labels
         LEFT JOIN senses.labels as labels ON resource_labels.label_id = labels.id
@@ -55,17 +56,18 @@ module Model =
                 let labels =
                     [ for row in rows do
                         let res =
+                            let idColumn = row.Item "id"
                             let labelIdColumn = row.Item "label_id"
                             let labelColorColumn = row.Item "label_color"
                             let labelTitleColumn = row.Item "label_title"
                             let labelStatusColumn = row.Item "label_status"
                             let shapeColumn = row.Item "shape"
-                            match labelIdColumn, labelColorColumn, labelTitleColumn, labelStatusColumn, shapeColumn with
-                            | Integer id, CharacterVaring color, CharacterVaring title, Integer status, Json shapeJson ->
+                            match idColumn, labelIdColumn, labelColorColumn, labelTitleColumn, labelStatusColumn, shapeColumn with
+                            | Bigint id, Integer labelId, CharacterVaring labelColor, CharacterVaring labelTitle, Integer labelStatus, Json shapeJson ->
                                 match  Decode.Auto.fromString<Shape> shapeJson with
                                 | Ok shape ->
-                                    let label = { id = id; color = color; title = title; status = status }
-                                    Ok { label = label; shape = shape }
+                                    let label = { id = labelId; color = labelColor; title = labelTitle; status = labelStatus }
+                                    Ok { id = Some id; label = label; shape = shape }
                                 | Error reason ->
                                     Error (Exception reason)
                             | _ ->
@@ -79,25 +81,52 @@ module Model =
                 { totalCount = 0L; items = [] }
 
     let create (user: User) (resourceId: int64) (createParams: ResourceLabelsCreateParams) : ResourceLabel list =
-        let statement = """
-            INSERT INTO senses.resource_labels(user_id, resource_id, label_id, shape)
-            VALUES (@user_id, @resource_id, @label_id, @shape)
-        """
-
         let resourceLabels =
             [ for item in createParams.labels do
                 let jsonShape = Encode.Auto.toString (0, item.shape)
-                let sql =
-                    { statement = statement
-                      parameters = [("user_id", Bigint user.id); ("resource_id", Bigint resourceId); ("label_id", Integer item.label.id); ("shape", Json jsonShape)]
-                      columnTypes = resourceLabelsTable }
-                let rows = Database.execute Database.defaultConnection sql
-                match List.length rows with
-                | 1 ->
-                    yield item
-                | _ ->
-                    printfn ""
+                match item.id with
+                | Some id ->
+                    let statement = """
+                        UPDATE senses.resource_labels
+                        SET label_id=@label_id,
+                            shape=@shape
+                        WHERE resource_id=@resource_id AND user_id=@user_id AND id=@id
+                        RETURNING id
+                    """
+                    let sql =
+                        { statement = statement
+                          parameters = [("id", Bigint id); ("user_id", Bigint user.id); ("resource_id", Bigint resourceId); ("label_id", Integer item.label.id); ("shape", Json jsonShape)]
+                          columnTypes = resourceLabelsTable }
+                    let rows = Database.execute Database.defaultConnection sql
+                    match List.length rows with
+                    | 1 ->
+                        yield item
+                    | _ ->
+                        printfn ""
+                | None ->
+                    let statement = """
+                        INSERT INTO senses.resource_labels(user_id, resource_id, label_id, shape)
+                        VALUES (@user_id, @resource_id, @label_id, @shape)
+                        RETURNING id
+                    """
+                    let sql =
+                        { statement = statement
+                          parameters = [("user_id", Bigint user.id); ("resource_id", Bigint resourceId); ("label_id", Integer item.label.id); ("shape", Json jsonShape)]
+                          columnTypes = resourceLabelsTable }
+                    let rows = Database.execute Database.defaultConnection sql
+                    match List.length rows with
+                    | 1 ->
+                        let row = rows.[0]
+                        let idColumn = row.Item "id"
+                        match idColumn with
+                        | Bigint id ->
+                            yield { item with id = Some id }
+                        | _ ->
+                            printfn "unmatch id column type"
+                    | _ ->
+                        printfn "unexpected rows"
                 ]
+                
 
         resourceLabels
 

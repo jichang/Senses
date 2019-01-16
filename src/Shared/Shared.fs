@@ -391,7 +391,8 @@ module rec Model =
         | Polyline of Polyline
 
     type ResourceLabel =
-        { label: Label
+        { id: int64 option
+          label: Label
           shape: Shape }
 
     type ResourceLabelsCreateParams =
