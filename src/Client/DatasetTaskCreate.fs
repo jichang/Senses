@@ -171,7 +171,7 @@ let view model dispatch =
 
     let labelsSelect =
         let isSelected (label: Label) =
-            List.exists (fun _label -> label.id = _label.id) model.choosedLabels
+            List.exists (fun (_label: Label) -> label.id = _label.id) model.choosedLabels
 
         let labelView (label: Label) =
             div [ ClassName "checkbox__item" ]

@@ -30,7 +30,7 @@ let tools =
       { shapeType = ShapeType.Point; iconUrl = "/images/point.svg"; title = "Point"} ]
 
 type Pagination =
-    { currentPage: int64 }
+    { currentPage: int }
 
 type Model =
     { loading: bool
@@ -52,6 +52,8 @@ type Msg =
     | LoadResourceLabels of Result<ModelCollection<ResourceLabel>, exn>
     | ChangeTool of Tool
     | ChangeLabel of Label
+    | GotoNext
+    | GotoPrev
     | MouseDown of Point
     | MouseMove of Point
     | MouseUp of Point
@@ -65,7 +67,7 @@ let init (datasetId: int64) (taskId: int64) : Model * Cmd<Msg> =
           taskId = taskId
           task = None
           resources = { totalCount = 0L; items = [] }
-          pagination = { currentPage = 0L }
+          pagination = { currentPage = 0 }
           selectedTool = tools.[0]
           selectedLabel = None
           points = List.empty
@@ -166,6 +168,12 @@ let update msg model =
         { model with selectedTool = tool; points = List.empty }, Cmd.none
     | ChangeLabel label ->
         { model with selectedLabel = Some label }, Cmd.none
+    | GotoPrev ->
+        let newPagination = { model.pagination with currentPage = model.pagination.currentPage - 1}
+        { model with pagination = newPagination; resourceLabels = List.empty }, Cmd.none
+    | GotoNext ->
+        let newPagination = { model.pagination with currentPage = model.pagination.currentPage + 1}
+        { model with pagination = newPagination; resourceLabels = List.empty }, Cmd.none
     | MouseDown point ->
         match model.selectedTool.shapeType with
         | Point
@@ -424,8 +432,9 @@ let view (model: Model) dispatch =
 
     let editor =
         let editor =
-            match List.tryItem ((int)model.pagination.currentPage) model.resources.items with
+            match List.tryItem (model.pagination.currentPage) model.resources.items with
             | Some resource ->
+                printfn "%A" resource
                 match resource.``type``.key with
                 | ResourceTypeKey.Image ->
                     imageEditor resource
@@ -439,7 +448,14 @@ let view (model: Model) dispatch =
             [ div [ ClassName "flex__item" ] [ div [ ClassName "square" ]  [ div [ ClassName "content" ] [ editor ] ] ]
               div [ ClassName "asidebar" ] labelsView ]
 
+    let pagination =
+        div []
+            [ button [ OnClick (fun _ -> dispatch GotoPrev); ClassName "button button--outline button--primary"  ]
+                [ str "Prev" ]
+              button [ OnClick (fun _ -> dispatch GotoNext); ClassName "button button--outline button--primary"  ]
+                [ str "Next" ] ]
+
     div []
         [ pageHeader
           div [ ]
-              [ toolbar; editor ] ]
+              [ toolbar; editor; pagination ] ]
