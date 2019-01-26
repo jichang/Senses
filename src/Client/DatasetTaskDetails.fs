@@ -170,10 +170,50 @@ let update msg model =
         { model with selectedLabel = Some label }, Cmd.none
     | GotoPrev ->
         let newPagination = { model.pagination with currentPage = model.pagination.currentPage - 1}
-        { model with pagination = newPagination; resourceLabels = List.empty }, Cmd.none
+        let session: Result<Session, string>  = Token.load ()
+        let cmd =
+            match session with
+            | Ok session ->
+                let authorization = sprintf "Bearer %s" session.token
+                let defaultProps =
+                    [ RequestProperties.Method HttpMethod.GET
+                      requestHeaders
+                          [ ContentType "application/json" 
+                            Authorization authorization ] ]
+                let resource = model.resources.items.[newPagination.currentPage]
+                let url = sprintf "/api/datasets/%d/tasks/%d/resources/%d/labels" model.datasetId model.taskId resource.id
+                let decoder = Decode.Auto.generateDecoder<ModelCollection<ResourceLabel>>()
+                Cmd.ofPromise
+                    (fun _ -> fetchAs url decoder defaultProps)
+                    ()
+                    (Ok >> LoadResourceLabels)
+                    (Error >> LoadResourceLabels)
+            | Error _ ->
+                Cmd.none
+        { model with pagination = newPagination; resourceLabels = List.empty }, cmd
     | GotoNext ->
         let newPagination = { model.pagination with currentPage = model.pagination.currentPage + 1}
-        { model with pagination = newPagination; resourceLabels = List.empty }, Cmd.none
+        let session: Result<Session, string>  = Token.load ()
+        let cmd =
+            match session with
+            | Ok session ->
+                let authorization = sprintf "Bearer %s" session.token
+                let defaultProps =
+                    [ RequestProperties.Method HttpMethod.GET
+                      requestHeaders
+                          [ ContentType "application/json" 
+                            Authorization authorization ] ]
+                let resource = model.resources.items.[newPagination.currentPage]
+                let url = sprintf "/api/datasets/%d/tasks/%d/resources/%d/labels" model.datasetId model.taskId resource.id
+                let decoder = Decode.Auto.generateDecoder<ModelCollection<ResourceLabel>>()
+                Cmd.ofPromise
+                    (fun _ -> fetchAs url decoder defaultProps)
+                    ()
+                    (Ok >> LoadResourceLabels)
+                    (Error >> LoadResourceLabels)
+            | Error _ ->
+                Cmd.none
+        { model with pagination = newPagination; resourceLabels = List.empty }, cmd
     | MouseDown point ->
         match model.selectedTool.shapeType with
         | Point
@@ -450,7 +490,7 @@ let view (model: Model) dispatch =
 
     let pagination =
         div []
-            [ button [ OnClick (fun _ -> dispatch GotoPrev); ClassName "button button--outline button--primary"  ]
+            [ button [ Disabled (model.pagination.currentPage = 0); OnClick (fun _ -> dispatch GotoPrev); ClassName "button button--outline button--primary"  ]
                 [ str "Prev" ]
               button [ OnClick (fun _ -> dispatch GotoNext); ClassName "button button--outline button--primary"  ]
                 [ str "Next" ] ]
