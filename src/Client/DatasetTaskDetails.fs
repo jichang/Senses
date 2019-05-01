@@ -1,14 +1,14 @@
 module DatasetTaskDetails
 
 open Elmish
-open Fable.Core
-open Fable.Import.React
-open Fable.Helpers.React
-open Fable.Helpers.React.Props
-open Fable.PowerPack.Fetch
+open Fable.React
+open Fable.React.Props
+open Fetch
 open Fable.Core.JsInterop
 open Thoth.Json
 open Shared.Model
+open Api
+open Browser.Types
 
 type ShapeType =
     | Rectangle
@@ -88,16 +88,16 @@ let init (datasetId: int64) (taskId: int64) : Model * Cmd<Msg> =
 
         let sliceCmd =
             let url = sprintf "/api/datasets/%d/tasks/%d" datasetId taskId
-            Cmd.ofPromise
-                (fun _ -> fetchAs url Task.Decoder defaultProps)
+            Cmd.OfPromise.either
+                (fun _ -> fetchAs url defaultProps Task.Decoder)
                 ()
                 (Ok >> LoadTask)
                 (Error >> LoadTask)
 
         let resourcesCmd =
             let url = sprintf "/api/datasets/%d/tasks/%d/resources" datasetId taskId
-            Cmd.ofPromise
-                (fun _ -> fetchAs url (ModelCollection<Resource>.Decoder Resource.Decoder) defaultProps)
+            Cmd.OfPromise.either
+                (fun _ -> fetchAs url defaultProps (ModelCollection<Resource>.Decoder Resource.Decoder))
                 ()
                 (Ok >> LoadResources)
                 (Error >> LoadResources)
@@ -152,9 +152,9 @@ let update msg model =
                                 Authorization authorization ] ]
                     let resource = resources.items.[0]
                     let url = sprintf "/api/datasets/%d/tasks/%d/resources/%d/labels" model.datasetId model.taskId resource.id
-                    let decoder = Decode.Auto.generateDecoder<ModelCollection<ResourceLabel>>()
-                    Cmd.ofPromise
-                        (fun _ -> fetchAs url decoder defaultProps)
+                    let decoder = ModelCollection<ResourceLabel>.Decoder ResourceLabel.Decoder
+                    Cmd.OfPromise.either
+                        (fun _ -> fetchAs url defaultProps decoder)
                         ()
                         (Ok >> LoadResourceLabels)
                         (Error >> LoadResourceLabels)
@@ -182,9 +182,9 @@ let update msg model =
                             Authorization authorization ] ]
                 let resource = model.resources.items.[newPagination.currentPage]
                 let url = sprintf "/api/datasets/%d/tasks/%d/resources/%d/labels" model.datasetId model.taskId resource.id
-                let decoder = Decode.Auto.generateDecoder<ModelCollection<ResourceLabel>>()
-                Cmd.ofPromise
-                    (fun _ -> fetchAs url decoder defaultProps)
+                let decoder = ModelCollection.Decoder ResourceLabel.Decoder
+                Cmd.OfPromise.either
+                    (fun _ -> fetchAs url defaultProps decoder)
                     ()
                     (Ok >> LoadResourceLabels)
                     (Error >> LoadResourceLabels)
@@ -205,9 +205,9 @@ let update msg model =
                             Authorization authorization ] ]
                 let resource = model.resources.items.[newPagination.currentPage]
                 let url = sprintf "/api/datasets/%d/tasks/%d/resources/%d/labels" model.datasetId model.taskId resource.id
-                let decoder = Decode.Auto.generateDecoder<ModelCollection<ResourceLabel>>()
-                Cmd.ofPromise
-                    (fun _ -> fetchAs url decoder defaultProps)
+                let decoder = ModelCollection<ResourceLabel>.Decoder ResourceLabel.Decoder
+                Cmd.OfPromise.either
+                    (fun _ -> fetchAs url defaultProps decoder)
                     ()
                     (Ok >> LoadResourceLabels)
                     (Error >> LoadResourceLabels)
@@ -291,7 +291,7 @@ let update msg model =
                     { labels = model.resourceLabels }
 
                 let authorization = sprintf "Bearer %s" session.token
-                let body = Encode.Auto.toString (0, createParams)
+                let body = Encode.toString 0 (ResourceLabelsCreateParams.Encoder createParams)
                 let defaultProps =
                     [ RequestProperties.Method HttpMethod.POST
                       requestHeaders
@@ -301,7 +301,7 @@ let update msg model =
 
                 let resource = model.resources.items.[(int)model.pagination.currentPage]
                 let url = sprintf "/api/datasets/%d/tasks/%d/resources/%d/labels" model.datasetId model.taskId resource.id
-                Cmd.ofPromise
+                Cmd.OfPromise.either
                     (fun _ -> fetch url defaultProps)
                     ()
                     (Ok >> SaveResponse)

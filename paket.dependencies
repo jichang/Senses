@@ -1,5 +1,3 @@
-version 5.193.0
-
 group Server
     storage: none
     source https://api.nuget.org/v3/index.json
@@ -24,10 +22,14 @@ group Client
 
     nuget Fable.Core
     nuget Fable.Fetch
+    nuget Fable.Promise
+    nuget Fable.Elmish
     nuget Fable.Elmish.Debugger
     nuget Fable.Elmish.React
     nuget Fable.Elmish.HMR
     nuget Fable.Elmish.Browser
+    nuget Fable.Browser.WebStorage
+    nuget Fable.Browser.XMLHttpRequest
     nuget Thoth.Json
 
     clitool dotnet-fable

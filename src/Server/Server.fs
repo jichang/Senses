@@ -5,8 +5,7 @@ open Microsoft.Extensions.DependencyInjection
 open Saturn
 open Giraffe
 open Config
-
-open Giraffe.Serialization
+open Thoth.Json.Net
 
 let publicPath = Path.GetFullPath "../Client/public"
 let port = 8085us
@@ -30,10 +29,11 @@ let webApp = router {
 }
 
 let configureSerialization (services:IServiceCollection) =
-    let jsonSettings = Newtonsoft.Json.JsonSerializerSettings()
-    for converter in Thoth.Json.Net.Converters.converters do
-        jsonSettings.Converters.Add(converter)
-    services.AddSingleton<IJsonSerializer>(NewtonsoftJsonSerializer jsonSettings)
+    let extraCoders =
+        Extra.empty
+        |> Extra.withInt64
+        |> Extra.withDecimal
+    services.AddSingleton<Giraffe.Serialization.Json.IJsonSerializer>(Thoth.Json.Giraffe.ThothSerializer(extra=extraCoders))
 
 let app = application {
     url ("http://0.0.0.0:" + port.ToString() + "/")

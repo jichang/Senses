@@ -1,12 +1,13 @@
 module Datasets
 
 open Elmish
-open Fable.Helpers.React
-open Fable.Helpers.React.Props
-open Fable.PowerPack.Fetch
+open Fable.React
+open Fable.React.Props
+open Fetch
 
 open Shared.Model
-open Elmish.Browser.Navigation
+open Elmish.Navigation
+open Api
 
 type Model =
     { loading: bool
@@ -36,8 +37,8 @@ let init () =
 
         let cmd =
             let decoder =(ModelCollection<Dataset>.Decoder Dataset.Decoder)
-            Cmd.ofPromise
-                (fun _ -> fetchAs "/api/datasets" decoder defaultProps)
+            Cmd.OfPromise.either
+                (fun _ -> fetchAs "/api/datasets" defaultProps decoder)
                 ()                
                 (Ok >> Init)
                 (Error >> Init)

@@ -35,15 +35,14 @@ module.exports = {
         filename: "bundle.js"
     },
     devServer: {
+        port: 8086,
         proxy: {
             "/api/*": {
                 target: "http://localhost:" + port,
                 changeOrigin: true
             }
         },
-        historyApiFallback: {
-            index: "index.html"
-        },
+        historyApiFallback: true,
         contentBase: resolve("./public"),
         hot: true,
         inline: true

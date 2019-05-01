@@ -1,6 +1,6 @@
 module Router
-    open Fable.Import.Browser
-    open Elmish.Browser.UrlParser
+    open Browser
+    open Elmish.UrlParser
 
     let currentUrl () = window.location.href
 

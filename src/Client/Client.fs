@@ -1,13 +1,12 @@
 module Client
 
-open Fable.Helpers.React
-open Fable.Helpers.React.Props
-open Fable.PowerPack.Fetch
+open Fable.React
+open Fable.React.Props
+open Fetch
 
 open Elmish
 open Elmish.React
-open Elmish.Browser
-open Elmish.Browser.Navigation
+open Elmish.Navigation
 open Elmish.HMR
 
 open Shared.Model
@@ -200,7 +199,7 @@ let init (page: Page option) : Model * Cmd<Msg> =
                         Authorization authorization ] ]
 
             let cmd =
-                Cmd.ofPromise
+                Cmd.OfPromise.either
                     (fun _ -> fetch "/api/session" defaultProps)
                     ()
                     (Ok >> SessionCheck)
@@ -315,7 +314,7 @@ let view (model : Model) (dispatch : Msg -> unit) =
             Sign.view model.sign.Value (dispatch << Msg.Sign)
 
     let mainContent =
-        Fable.Helpers.React.main [ ClassName "app-main" ] [ pageView ]
+        main [ ClassName "app-main" ] [ pageView ]
 
     div [ ClassName "app" ] [ mainContent ]
 
@@ -334,7 +333,7 @@ Program.mkProgram init update view
 #if DEBUG
 |> Program.withConsoleTrace
 #endif
-|> Program.withReact "senses-app"
+|> Program.withReactBatched "senses-app"
 #if DEBUG
 |> Program.withDebugger
 #endif

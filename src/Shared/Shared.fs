@@ -12,7 +12,7 @@ module rec Model =
     type ApiError =
         { code: string }
 
-        static member Decoder : Decode.Decoder<ApiError> =
+        static member Decoder : Decoder<ApiError> =
             Decode.object (fun get -> { code = get.Required.Field "code" Decode.string } )
 
         static member Encoder (errorResponse : ApiError) =
@@ -23,13 +23,13 @@ module rec Model =
         { totalCount: int64
           items: 't list }
 
-        static member Decoder (itemDecoder: Decode.Decoder<'t>) : Decode.Decoder<ModelCollection<'t>> =
+        static member Decoder (itemDecoder: Decoder<'t>) : Decoder<ModelCollection<'t>> =
             Decode.object (fun get ->
                 { totalCount = get.Required.Field "totalCount" Decode.int64
                   items = get.Required.Field "items" (Decode.list itemDecoder) }
             )
 
-        static member Encoder (itemEncoder: Encode.Encoder<'t>) (modelCollection: ModelCollection<'t>) =
+        static member Encoder (itemEncoder: Encoder<'t>) (modelCollection: ModelCollection<'t>) =
             Encode.object
                 [ "totalCount", Encode.int64 modelCollection.totalCount
                   "items", Encode.list (List.map itemEncoder modelCollection.items) ]
@@ -37,7 +37,7 @@ module rec Model =
     type Session =
         { token: string }
 
-        static member Decoder : Decode.Decoder<Session> =
+        static member Decoder : Decoder<Session> =
             Decode.object
                 (fun get ->
                     { token = get.Required.Field "token" Decode.string }
@@ -52,7 +52,7 @@ module rec Model =
           uuid: Guid
           status: int32 }
 
-        static member Decoder : Decode.Decoder<User> =
+        static member Decoder : Decoder<User> =
             Decode.object
                 (fun get ->
                     { id = get.Required.Field "id" Decode.int64
@@ -70,7 +70,7 @@ module rec Model =
         { datasetsCount: int64
           labelsCount: int64 }
 
-        static member Decoder : Decode.Decoder<Summary> =
+        static member Decoder : Decoder<Summary> =
             Decode.object
                 (fun get ->
                     { datasetsCount = get.Required.Field "datasetsCount" Decode.int64
@@ -87,7 +87,7 @@ module rec Model =
           title: string
           status: int }
 
-        static member Decoder : Decode.Decoder<DatasetSlice> =
+        static member Decoder : Decoder<DatasetSlice> =
             Decode.object
                 (fun get ->
                     { id = get.Required.Field "id" Decode.int64
@@ -104,7 +104,7 @@ module rec Model =
     type DatasetCreateParams =
         { title: string }
 
-        static member Decoder : Decode.Decoder<DatasetCreateParams> =
+        static member Decoder : Decoder<DatasetCreateParams> =
             Decode.object (fun get -> { title = get.Required.Field "title" Decode.string } )
 
         static member Encoder (datasetCreateParams: DatasetCreateParams) =
@@ -118,7 +118,7 @@ module rec Model =
           slices: ModelCollection<DatasetSlice>
           status: int }
 
-        static member Decoder : Decode.Decoder<Dataset> =
+        static member Decoder : Decoder<Dataset> =
             Decode.object
                 (fun get ->
                     { id = get.Required.Field "id" Decode.int64
@@ -143,7 +143,7 @@ module rec Model =
         | Text
         | Video
 
-        static member Decoder : Decode.Decoder<ResourceTypeKey> =
+        static member Decoder : Decoder<ResourceTypeKey> =
             Decode.string
             |> Decode.andThen
                 (function
@@ -164,7 +164,7 @@ module rec Model =
           key: ResourceTypeKey
           status: int }
 
-        static member Decoder : Decode.Decoder<ResourceType> =
+        static member Decoder : Decoder<ResourceType> =
             Decode.object
                 (fun get ->
                     { id = get.Required.Field "id" Decode.int
@@ -181,7 +181,7 @@ module rec Model =
     type TaskTypeKey =
         | Label
 
-        static member Decoder : Decode.Decoder<TaskTypeKey> =
+        static member Decoder : Decoder<TaskTypeKey> =
             Decode.string
             |> Decode.andThen
                 (function
@@ -197,7 +197,7 @@ module rec Model =
           key: TaskTypeKey
           status: int }
 
-        static member Decoder : Decode.Decoder<TaskType> =
+        static member Decoder : Decoder<TaskType> =
             Decode.object
                 (fun get ->
                     { id = get.Required.Field "id" Decode.int
@@ -218,7 +218,7 @@ module rec Model =
           datasetSlices: ModelCollection<DatasetSlice>
           status: int }
 
-        static member Decoder : Decode.Decoder<Task> =
+        static member Decoder : Decoder<Task> =
             Decode.object
                 (fun get ->
                     { id = get.Required.Field "id" Decode.int64
@@ -241,7 +241,7 @@ module rec Model =
           labels: Label list
           datasetSlices: DatasetSlice list }
 
-        static member Decoder : Decode.Decoder<TaskCreateParams> =
+        static member Decoder : Decoder<TaskCreateParams> =
              Decode.object
                  (fun get ->
                      { taskType = get.Required.Field "taskType" TaskType.Decoder
@@ -261,7 +261,7 @@ module rec Model =
           content: string
           status: int }
 
-        static member Decoder : Decode.Decoder<Resource> =
+        static member Decoder : Decoder<Resource> =
             Decode.object
                 (fun get ->
                     { id = get.Required.Field "id" Decode.int64
@@ -282,7 +282,7 @@ module rec Model =
     type ResourceCreateResponse =
         { total: int64 }
 
-        static member Decoder : Decode.Decoder<ResourceCreateResponse> =
+        static member Decoder : Decoder<ResourceCreateResponse> =
             Decode.object
                 (fun get ->
                     { total = get.Required.Field "id" Decode.int64 }
@@ -296,7 +296,7 @@ module rec Model =
         { color: string
           title: string }
 
-        static member Decoder : Decode.Decoder<LabelCreateParams> =
+        static member Decoder : Decoder<LabelCreateParams> =
             Decode.object (fun get ->
                 { color = get.Required.Field "color" Decode.string
                   title = get.Required.Field "title" Decode.string } )
@@ -312,7 +312,7 @@ module rec Model =
           title: string 
           status: int }
     
-        static member Decoder : Decode.Decoder<Label> =
+        static member Decoder : Decoder<Label> =
             Decode.object
                 (fun get ->
                     { id = get.Required.Field "id" Decode.int
@@ -332,7 +332,7 @@ module rec Model =
         { uri: string
           content: string }
 
-        static member Decoder : Decode.Decoder<ResourceSource> =
+        static member Decoder : Decoder<ResourceSource> =
             Decode.object
                 (fun get ->
                     { uri = get.Required.Field "uri" Decode.string
@@ -350,7 +350,7 @@ module rec Model =
           source: ResourceSource
           }
 
-        static member Decoder : Decode.Decoder<ResourceFileLine> =
+        static member Decoder : Decoder<ResourceFileLine> =
             Decode.object
                 (fun get ->
                     { version = get.Required.Field "version" Decode.string
@@ -368,20 +368,78 @@ module rec Model =
         { x: float
           y: float }
 
+        static member Decoder : Decoder<Point> =
+            Decode.object
+                (fun get ->
+                    { x = get.Required.Field "x" Decode.float
+                      y = get.Required.Field "y" Decode.float }
+                )
+
+        static member Encoder (point : Point) =
+            Encode.object
+                [ "x", Encode.float point.x
+                  "y", Encode.float point.y ]
+
     type Circle =
         { radius: float
           center: Point }
+
+        static member Decoder : Decoder<Circle> =
+            Decode.object
+                (fun get ->
+                    { radius = get.Required.Field "radius" Decode.float
+                      center = get.Required.Field "center" Point.Decoder }
+                )
+
+        static member Encoder (circle : Circle) =
+            Encode.object
+                [ "radius", Encode.float circle.radius
+                  "center", Point.Encoder circle.center ]
 
     type Rectangle =
         { origin: Point
           width: float
           height: float }
 
+        static member Decoder : Decoder<Rectangle> =
+            Decode.object
+                (fun get ->
+                    { width = get.Required.Field "width" Decode.float
+                      height = get.Required.Field "height" Decode.float
+                      origin = get.Required.Field "origin" Point.Decoder }
+                )
+
+        static member Encoder (rectangle : Rectangle) =
+            Encode.object
+                [ "origin", Point.Encoder rectangle.origin
+                  "width", Encode.float rectangle.width
+                  "height", Encode.float rectangle.height ]
+
     type Polygon =
         { points: Point list }
 
+        static member Decoder : Decoder<Polygon> =
+            Decode.object
+                (fun get ->
+                    { points = get.Required.Field "points" (Decode.list Point.Decoder) }
+                )
+
+        static member Encoder (polygon: Polygon) =
+            Encode.object
+                [ "point", Encode.list (List.map Point.Encoder polygon.points) ]
+
     type Polyline =
         { points: Point list }
+
+        static member Decoder : Decoder<Polyline> =
+            Decode.object
+                (fun get ->
+                    { points = get.Required.Field "points" (Decode.list Point.Decoder) }
+                )
+
+        static member Encoder (polyline: Polyline) =
+            Encode.object
+                [ "point", Encode.list (List.map Point.Encoder polyline.points) ]
 
     type Shape =
         | Point of Point
@@ -390,19 +448,115 @@ module rec Model =
         | Polygon of Polygon
         | Polyline of Polyline
 
+        static member Decoder : Decoder<Shape> =
+            Decode.index 0 Decode.string
+            |> Decode.andThen
+                (fun shape ->
+                    match shape with
+                    | "Point" ->
+                        Decode.index 1 Point.Decoder
+                        |> Decode.andThen (Point >> Decode.succeed)
+                    | "Circle" ->
+                        Decode.index 1 Circle.Decoder
+                        |> Decode.andThen (Circle >> Decode.succeed)
+                    | "Rectangle" -> 
+                        Decode.index 1 Rectangle.Decoder
+                        |> Decode.andThen (Rectangle >> Decode.succeed)
+                    | "Polygon" -> 
+                        Decode.index 1 Polygon.Decoder
+                        |> Decode.andThen (Polygon >> Decode.succeed)
+                    | "Polyline" ->
+                        Decode.index 1 Polyline.Decoder
+                        |> Decode.andThen (Polyline >> Decode.succeed)
+                    | invalid -> Decode.fail (sprintf "Failed to decode `%s` it's an invalide case for `Shape`" invalid)
+                )
+
+        static member Encoder (shape : Shape) =
+            match shape with
+            | Point point ->
+                Encode.array
+                    [| Encode.string "Point"
+                       Point.Encoder point |]
+            | Circle circle ->
+                Encode.array
+                    [| Encode.string "Circle"
+                       Circle.Encoder circle |]
+            | Rectangle rectangle ->
+                Encode.array
+                    [| Encode.string "Rectangle"
+                       Rectangle.Encoder rectangle |]
+            | Polygon polygon ->
+                Encode.array
+                    [| Encode.string "Polygon"
+                       Polygon.Encoder polygon |]
+            | Polyline polyline ->
+                Encode.array
+                    [| Encode.string "Polyline"
+                       Polyline.Encoder polyline |]
+
     type ResourceLabel =
         { id: int64 option
           label: Label
           shape: Shape }
 
+        static member Decoder : Decoder<ResourceLabel> =
+            Decode.object
+                (fun get ->
+                    { id = get.Optional.Field "id" Decode.int64
+                      label = get.Required.Field "label" Label.Decoder
+                      shape = get.Required.Field "shape" Shape.Decoder }
+                )
+
+        static member Encoder (resourceLabel : ResourceLabel) =
+            Encode.object
+                [ "id", Encode.option Encode.int64 resourceLabel.id
+                  "label", Label.Encoder resourceLabel.label
+                  "shape", Shape.Encoder resourceLabel.shape ]
+
     type ResourceLabelsCreateParams =
         { labels: ResourceLabel list }
+
+        static member Decoder : Decoder<ResourceLabelsCreateParams> =
+            Decode.object
+                (fun get ->
+                    { labels = get.Required.Field "labels" (Decode.list ResourceLabel.Decoder) }
+                )
+
+        static member Encoder (createParams: ResourceLabelsCreateParams) =
+            Encode.object
+                [ "labels", Encode.list (List.map ResourceLabel.Encoder createParams.labels) ]
 
     type Result =
         { title: string
           shape: Shape }
 
+        static member Decoder : Decoder<Result> =
+            Decode.object
+                (fun get ->
+                    { title = get.Required.Field "title" Decode.string
+                      shape = get.Required.Field "shape" Shape.Decoder }
+                )
+
+        static member Encoder (result : Result) =
+            Encode.object
+                [ "title", Encode.string result.title
+                  "shape", Shape.Encoder result.shape ]
+
     type ResourceLabels =
         { uri: string
           content: string
           results: Result list }
+
+        static member Decoder : Decoder<ResourceLabels> =
+            Decode.object
+                (fun get ->
+                    { uri = get.Required.Field "uri" Decode.string
+                      content = get.Required.Field "content" Decode.string
+                      results = get.Required.Field "results" (Decode.list Result.Decoder) }
+                )
+
+        static member Encoder (labels : ResourceLabels) =
+            Encode.object
+                [ "uri", Encode.string labels.uri
+                  "content", Encode.string labels.content
+                  "results", Encode.list (List.map Result.Encoder labels.results) ]

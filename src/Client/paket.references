@@ -2,8 +2,13 @@ group Client
     FSharp.Core
     Fable.Core
     Fable.Fetch
+    Fable.Promise
+    Fable.Elmish
     Fable.Elmish.Debugger
     Fable.Elmish.Browser
     Fable.Elmish.React
     Fable.Elmish.HMR
+    Fable.Browser.WebStorage
+    Fable.Browser.XMLHttpRequest
+    Thoth.Json
     dotnet-fable

@@ -53,7 +53,7 @@ module Model =
                     let labelTitleColumn = row.Item "label_title"
                     match uriColumn, contentColumn, shapeColumn, labelTitleColumn with
                     | CharacterVaring uri, Text content, Json shapeJson, CharacterVaring labelTitle ->
-                        match  Decode.Auto.fromString<Shape> shapeJson with
+                        match  Decode.fromString Shape.Decoder shapeJson with
                         | Ok shape ->
                             let result = {
                                 uri = uri

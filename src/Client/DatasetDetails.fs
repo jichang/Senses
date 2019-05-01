@@ -2,10 +2,11 @@ module DatasetDetails
 
 open Shared.Model
 open Elmish
-open Fable.Helpers.React
-open Fable.Helpers.React.Props
-open Fable.PowerPack.Fetch
+open Fable.React
+open Fable.React.Props
+open Fetch
 open Thoth.Json
+open Api
 
 type Model =
     { loading: bool
@@ -44,8 +45,8 @@ let init (data: InitData) =
                             Authorization authorization ] ]
 
                 let url = sprintf "/api/datasets/%d" datasetId
-                Cmd.ofPromise
-                    (fun _ -> fetchAs url Dataset.Decoder defaultProps)
+                Cmd.OfPromise.either
+                    (fun _ -> fetchAs url defaultProps Dataset.Decoder)
                     ()
                     (Ok >> LoadDatasetResponse)
                     (Error >> LoadDatasetResponse)
@@ -71,10 +72,10 @@ let update msg model =
                           [ ContentType "application/json" 
                             Authorization authorization ] ]
 
-                let decoder = Decode.Auto.generateDecoder<ResourceLabels list>()
+                let decoder = Decode.list ResourceLabels.Decoder
                 let url = sprintf "/api/datasets/%d/tasks/%d/results" datasetId taskId
-                Cmd.ofPromise
-                    (fun _ -> fetchAs url decoder defaultProps)
+                Cmd.OfPromise.either
+                    (fun _ -> fetchAs url defaultProps decoder)
                     ()
                     (Ok >> LoadResults)
                     (Error >> LoadResults)

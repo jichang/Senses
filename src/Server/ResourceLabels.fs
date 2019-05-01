@@ -64,11 +64,12 @@ module Model =
                             let shapeColumn = row.Item "shape"
                             match idColumn, labelIdColumn, labelColorColumn, labelTitleColumn, labelStatusColumn, shapeColumn with
                             | Bigint id, Integer labelId, CharacterVaring labelColor, CharacterVaring labelTitle, Integer labelStatus, Json shapeJson ->
-                                match  Decode.Auto.fromString<Shape> shapeJson with
+                                match  Decode.fromString Shape.Decoder shapeJson with
                                 | Ok shape ->
                                     let label = { id = labelId; color = labelColor; title = labelTitle; status = labelStatus }
                                     Ok { id = Some id; label = label; shape = shape }
                                 | Error reason ->
+                                    printfn "%s" reason
                                     Error (Exception reason)
                             | _ ->
                                 Error (Exception ("unmatch column value"))
@@ -81,9 +82,10 @@ module Model =
                 { totalCount = 0L; items = [] }
 
     let create (user: User) (resourceId: int64) (createParams: ResourceLabelsCreateParams) : ResourceLabel list =
+        printfn "%A" createParams
         let resourceLabels =
             [ for item in createParams.labels do
-                let jsonShape = Encode.Auto.toString (0, item.shape)
+                let jsonShape = Encode.toString 0 (Shape.Encoder item.shape)
                 match item.id with
                 | Some id ->
                     let statement = """

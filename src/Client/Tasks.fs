@@ -1,12 +1,13 @@
 module Tasks
 
 open Elmish
-open Fable.Helpers.React
-open Fable.Helpers.React.Props
-open Fable.PowerPack.Fetch
+open Api
+open Elmish.Navigation
+open Fable.React
+open Fable.React.Props
 
 open Shared.Model
-open Elmish.Browser.Navigation
+open Fetch
 
 type Model =
     { loading: bool
@@ -37,8 +38,8 @@ let init () =
 
         let cmd =
             let decoder =(ModelCollection<Task>.Decoder Task.Decoder)
-            Cmd.ofPromise
-                (fun _ -> fetchAs "/api/tasks" decoder defaultProps)
+            Cmd.OfPromise.either
+                (fun _ -> fetchAs "/api/tasks"  defaultProps decoder)
                 ()                
                 (Ok >> Init)
                 (Error >> Init)

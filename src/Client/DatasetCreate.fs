@@ -2,12 +2,13 @@ module DatasetCreate
 
 open Shared.Model
 open Elmish
-open Elmish.Browser.Navigation
-open Fable.Helpers.React
-open Fable.Helpers.React.Props
-open Fable.Import.React
-open Fable.PowerPack.Fetch
+open Elmish.Navigation
+open Fable.React
+open Fable.React.Props
+open Fetch
 open Thoth.Json
+open Browser.Types
+open Api
 
 type Model =
     { creating: bool
@@ -44,8 +45,8 @@ let update msg model =
                             Authorization authorization ]
                       RequestProperties.Body <| unbox body ]
 
-                Cmd.ofPromise
-                    (fun _ -> fetchAs "/api/datasets" Dataset.Decoder defaultProps)
+                Cmd.OfPromise.either
+                    (fun _ -> fetchAs "/api/datasets" defaultProps Dataset.Decoder)
                     ()
                     (Ok >> CreateResponse)
                     (Error >> CreateResponse)
@@ -61,12 +62,12 @@ let update msg model =
 
 
 let view model dispatch =
-    let submit (evt: FormEvent) =
+    let submit (evt: Event) =
         evt.preventDefault()
 
         dispatch Create
 
-    let changeTitle (evt: FormEvent) =
+    let changeTitle (evt: Event) =
         dispatch <| ChangeTitle evt.Value
 
     let datasetForm =

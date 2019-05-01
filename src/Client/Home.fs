@@ -1,11 +1,12 @@
 module Home
 
 open Elmish
-open Fable.Helpers.React
-open Fable.Helpers.React.Props
+open Fable.React
+open Fable.React.Props
 
 open Shared.Model
-open Fable.PowerPack.Fetch
+open Fetch
+open Api
 
 type Model =
     { ready: bool
@@ -28,8 +29,8 @@ let init (session: Session) =
 
         let cmd =
             let decoder = Summary.Decoder
-            Cmd.ofPromise
-                (fun _ -> fetchAs "/api/summary" decoder defaultProps)
+            Cmd.OfPromise.either
+                (fun _ -> fetchAs "/api/summary" defaultProps decoder)
                 ()                
                 (Ok >> Init)
                 (Error >> Init)
@@ -54,6 +55,7 @@ let view (model: Model) (dispatch: Msg -> unit) =
                 [ classList [("card__body", true)] ]
                 [ p [] [ str (title + count.ToString()) ]
                   a [ Href link ] [ str "Details" ] ]
+
         div [ classList [("flex__box", true)] ]
             [ div [classList [("flex__item text--center card card--padding", true)]] [ item "Datasets: " summary.datasetsCount "/datasets" ]
               div [classList [("flex__item text--center card card--padding", true)]] [ item "Labels: " summary.labelsCount "/labels" ] ]

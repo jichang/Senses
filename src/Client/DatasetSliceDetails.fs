@@ -2,9 +2,10 @@ module DatasetSliceDetails
 
 open Shared.Model
 open Elmish
-open Fable.Helpers.React
-open Fable.Helpers.React.Props
-open Fable.PowerPack.Fetch
+open Fable.React
+open Fable.React.Props
+open Fetch
+open Api
 
 type Model =
     { loading: bool
@@ -38,16 +39,16 @@ let init (datasetId: int64) (datasetSliceId: int64) : Model * Cmd<Msg> =
 
         let sliceCmd =
             let url = sprintf "/api/datasets/%d/slices/%d" datasetId datasetSliceId
-            Cmd.ofPromise
-                (fun _ -> fetchAs url DatasetSlice.Decoder defaultProps)
+            Cmd.OfPromise.either
+                (fun _ -> fetchAs url defaultProps DatasetSlice.Decoder)
                 ()
                 (Ok >> LoadDatasetSlice)
                 (Error >> LoadDatasetSlice)
 
         let resourcesCmd =
             let url = sprintf "/api/datasets/%d/slices/%d/resources" datasetId datasetSliceId
-            Cmd.ofPromise
-                (fun _ -> fetchAs url (ModelCollection.Decoder Resource.Decoder) defaultProps)
+            Cmd.OfPromise.either
+                (fun _ -> fetchAs url defaultProps (ModelCollection<Resource>.Decoder Resource.Decoder))
                 ()
                 (Ok >> LoadResources)
                 (Error >> LoadResources)

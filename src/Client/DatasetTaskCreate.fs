@@ -2,12 +2,13 @@ module DatasetTaskCreate
 
 open Shared.Model
 open Elmish
-open Fable.Helpers.React
-open Fable.Helpers.React.Props
-open Fable.PowerPack.Fetch
-open Fable.Import.React
+open Fable.React
+open Fable.React.Props
+open Fetch
+open Browser.Types
 open Thoth.Json
-open Elmish.Browser.Navigation
+open Elmish.Navigation
+open Api
 
 type Model =
     { loading: bool
@@ -56,24 +57,25 @@ let init (datasetId: int64) =
 
             let taskTypesCmd =
                 let decoder = (ModelCollection<TaskType>.Decoder TaskType.Decoder)
-                Cmd.ofPromise
-                    (fun _ -> fetchAs "/api/tasktypes" decoder defaultProps)
+                Cmd.OfPromise.either
+                    (fun _ -> fetchAs "/api/tasktypes" defaultProps decoder)
                     ()                
                     (Ok >> FetchTaskTypes)
                     (Error >> FetchTaskTypes)
 
             let labelsCmd =
                 let decoder = (ModelCollection<Label>.Decoder Label.Decoder)
-                Cmd.ofPromise
-                    (fun _ -> fetchAs "/api/labels" decoder defaultProps)
+                Cmd.OfPromise.either
+                    (fun _ -> fetchAs "/api/labels" defaultProps decoder)
                     ()                
                     (Ok >> FetchLabels)
                     (Error >> FetchLabels)
 
             let slicesCmd =
                 let decoder = (ModelCollection<DatasetSlice>.Decoder DatasetSlice.Decoder)
-                Cmd.ofPromise
-                    (fun _ -> fetchAs (sprintf "/api/datasets/%d/slices" datasetId) decoder defaultProps)
+                let url = sprintf "/api/datasets/%d/slices" datasetId
+                Cmd.OfPromise.either
+                    (fun _ -> fetchAs url defaultProps decoder)
                     ()                
                     (Ok >> FetchSlices)
                     (Error >> FetchSlices)
@@ -130,8 +132,8 @@ let update msg model =
                       RequestProperties.Body <| unbox body ]
 
                 let url = sprintf "/api/datasets/%d/tasks" model.datasetId
-                Cmd.ofPromise
-                    (fun _ -> fetchAs url Task.Decoder defaultProps)
+                Cmd.OfPromise.either
+                    (fun _ -> fetchAs url defaultProps Task.Decoder)
                     ()
                     (Ok >> CreateResponse)
                     (Error >> CreateResponse)
@@ -197,7 +199,7 @@ let view model dispatch =
 
         div [] slices
 
-    let submit (evt: FormEvent) =
+    let submit (evt: Event) =
         evt.preventDefault()
         dispatch Submit
 

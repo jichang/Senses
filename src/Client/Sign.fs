@@ -1,14 +1,15 @@
 module Sign
 
 open Elmish
-open Elmish.Browser.Navigation
-open Fable.Import.React
-open Fable.Helpers.React
-open Fable.Helpers.React.Props
-open Fable.PowerPack.Fetch
+open Elmish.Navigation
+open Fable.React
+open Fable.React.Props
 
 open Thoth.Json
 open Shared.Model
+open Api
+open Fetch
+open Browser.Types
 
 type Model =
     { redirectUrl: string option
@@ -41,8 +42,8 @@ let init (redirectUrl: string option) =
                   [ ContentType "application/json" ]]
 
         let decoder = ModelCollection<User>.Decoder User.Decoder
-        Cmd.ofPromise
-            (fun _ -> fetchAs "/api/users" decoder defaultProps)
+        Cmd.OfPromise.either
+            (fun _ -> fetchAs "/api/users" defaultProps decoder)
             ()
             (Ok >> Init)
             (Error >> Init)
@@ -65,8 +66,8 @@ let update (msg: Msg) (model: Model) =
                   requestHeaders [ContentType "application/json"]
                   RequestProperties.Body <| unbox body ]
             let cmd =
-                Cmd.ofPromise
-                    (fun _ -> fetchAs "/api/signin" Session.Decoder defaultProps)
+                Cmd.OfPromise.either
+                    (fun _ -> fetchAs "/api/signin" defaultProps Session.Decoder )
                     ()
                     (Ok >> LoginResponse)
                     (Error >> LoginResponse)
@@ -76,8 +77,8 @@ let update (msg: Msg) (model: Model) =
                 [ RequestProperties.Method HttpMethod.POST
                   requestHeaders [ContentType "application/json"] ]
             let cmd =
-                Cmd.ofPromise
-                    (fun _ -> fetchAs "/api/users" Session.Decoder defaultProps)
+                Cmd.OfPromise.either
+                    (fun _ -> fetchAs "/api/users" defaultProps Session.Decoder)
                     ()
                     (Ok >> CreateResponse)
                     (Error >> CreateResponse)
@@ -117,7 +118,7 @@ let view (model: Model) (dispatch: Msg -> unit) =
 
         let allOptions = Seq.append [defaultOption] options |> List.ofSeq
 
-        let chooseUser (evt: FormEvent) dispatch =
+        let chooseUser (evt: Event) dispatch =
             let userId = evt.Value
             let msg =
                 match userId with
@@ -128,7 +129,7 @@ let view (model: Model) (dispatch: Msg -> unit) =
                     Choose user
             dispatch msg
 
-        let submit (evt: FormEvent) dispatch =
+        let submit (evt: Event) dispatch =
             evt.preventDefault()
 
             dispatch Submit

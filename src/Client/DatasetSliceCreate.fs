@@ -1,15 +1,16 @@
 module DatasetSliceCreate
 
 open Elmish
-open Fable.Helpers.React
-open Fable.Helpers.React.Props
-open Fable.Import.Browser
-open Fable.Import.React
-open Fable.PowerPack.Fetch
+open Fable.React
+open Fable.React.Props
+open Fetch
 open Fable.Core.JsInterop
+open Browser.Types
 
 open Shared.Model
-open Elmish.Browser.Navigation
+open Elmish.Navigation
+open Api
+open Browser
 
 type Model =
     { uploading: bool
@@ -51,8 +52,8 @@ let update (msg: Msg) (model: Model) : Model * Cmd<Msg> =
 
                     let apiUrl = sprintf "/api/datasets/%d/slices" model.datasetId
 
-                    Cmd.ofPromise
-                        (fun _ -> fetchAs apiUrl DatasetSlice.Decoder defaultProps)
+                    Cmd.OfPromise.either
+                        (fun _ -> fetchAs apiUrl defaultProps DatasetSlice.Decoder)
                         ()
                         (Ok >> CreateResponse)
                         (Error >> CreateResponse)
@@ -69,7 +70,7 @@ let update (msg: Msg) (model: Model) : Model * Cmd<Msg> =
         { model with uploading = false}, Cmd.none
 
 let view (model: Model) dispatch =
-    let chooseFile (evt: FormEvent) =
+    let chooseFile (evt: Event) =
         let result = evt.target?files?item(0)
         dispatch (Choose result)
 

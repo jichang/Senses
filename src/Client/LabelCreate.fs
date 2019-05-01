@@ -2,12 +2,13 @@ module LabelCreate
 
 open Shared.Model
 open Elmish
-open Fable.Helpers.React
-open Fable.Helpers.React.Props
-open Fable.Import.React
-open Fable.PowerPack.Fetch
+open Fable.React
+open Fable.React.Props
+open Fetch
 open Thoth.Json
-open Elmish.Browser.Navigation
+open Elmish.Navigation
+open Browser.Types
+open Api
 
 type Model =
     { creating: bool
@@ -48,8 +49,8 @@ let update msg model =
                             Authorization authorization ]
                       RequestProperties.Body <| unbox body ]
 
-                Cmd.ofPromise
-                        (fun _ -> fetchAs "/api/labels" Label.Decoder defaultProps)
+                Cmd.OfPromise.either
+                        (fun _ -> fetchAs "/api/labels" defaultProps Label.Decoder)
                         ()
                         (Ok >> CreateResponse)
                         (Error >> CreateResponse)
@@ -64,15 +65,15 @@ let update msg model =
 
 
 let view model dispatch =
-    let submit (evt: FormEvent) =
+    let submit (evt: Event) =
         evt.preventDefault()
 
         dispatch Create
 
-    let changeTitle (evt: FormEvent) =
+    let changeTitle (evt: Event) =
         dispatch <| ChangeTitle evt.Value
 
-    let changeColor (evt: FormEvent) =
+    let changeColor (evt: Event) =
         dispatch <| ChangeColor evt.Value
 
     let createForm =

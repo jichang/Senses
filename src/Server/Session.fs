@@ -23,7 +23,14 @@ module Controller =
         |> Auth.generateJWT (jwtConfig.secret, SecurityAlgorithms.HmacSha256) jwtConfig.issuer (DateTime.UtcNow.AddHours(1.0))
 
     let indexAction (ctx: HttpContext) = task {
-        return! Controller.json ctx null
+                let sub = ctx.User.FindFirst ClaimTypes.NameIdentifier
+        match Decode.fromString User.Decoder sub.Value with
+        | Ok user ->
+            return! Controller.json ctx user
+        | Error err ->
+            let response =
+                { code = "invalid user code"}
+            return! Controller.json ctx response
     }
 
     let createAction ctx = task {
