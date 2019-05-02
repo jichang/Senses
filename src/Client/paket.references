@@ -8,6 +8,7 @@ group Client
     Fable.Elmish.Browser
     Fable.Elmish.React
     Fable.Elmish.HMR
+    Fable.Browser.Url
     Fable.Browser.WebStorage
     Fable.Browser.XMLHttpRequest
     Thoth.Json

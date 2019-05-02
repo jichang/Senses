@@ -99,7 +99,7 @@ Target.create "Run" (fun _ ->
     }
     let browser = async {
         Threading.Thread.Sleep 5000
-        openBrowser "http://localhost:8080"
+        openBrowser "http://localhost:8086"
     }
 
     [ server; client; browser ]

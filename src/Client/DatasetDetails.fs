@@ -7,15 +7,18 @@ open Fable.React.Props
 open Fetch
 open Thoth.Json
 open Api
+open Browser.Types
+open Browser
 
 type Model =
     { loading: bool
-      dataset: Dataset option }
+      dataset: Dataset option
+      taskResults: Map<int64, ResourceLabels list> }
 
 type Msg =
     | LoadDatasetResponse of Result<Dataset, exn>
     | DownloadResults of int64 * int64
-    | LoadResults of Result<ResourceLabels list, exn>
+    | LoadResults of int64 * Result<ResourceLabels list, exn>
 
 type InitData =
     | Dataset of Dataset
@@ -26,7 +29,8 @@ let init (data: InitData) =
     | Dataset dataset ->
         let model =
             { loading = false
-              dataset = Some dataset }
+              dataset = Some dataset
+              taskResults = Map.empty }
         model, Cmd.none
     | DatasetId datasetId ->
         let session: Result<Session, string>  = Token.load ()
@@ -34,7 +38,8 @@ let init (data: InitData) =
         | Ok session ->
             let model =
                 { loading = true
-                  dataset = None }
+                  dataset = None
+                  taskResults = Map.empty }
 
             let cmd = 
                 let authorization = sprintf "Bearer %s" session.token
@@ -52,7 +57,7 @@ let init (data: InitData) =
                     (Error >> LoadDatasetResponse)
             model, cmd
         | Error error ->
-            { loading = true; dataset = None }, Cmd.none
+            { loading = true; dataset = None; taskResults = Map.empty }, Cmd.none
 
 let update msg model =
     match msg with
@@ -77,11 +82,13 @@ let update msg model =
                 Cmd.OfPromise.either
                     (fun _ -> fetchAs url defaultProps decoder)
                     ()
-                    (Ok >> LoadResults)
-                    (Error >> LoadResults)
+                    (Ok >> (fun results -> LoadResults (taskId, results)))
+                    (Error >> (fun results -> LoadResults (taskId, results)))
             model, cmd
         | Error error ->
             model, Cmd.none
+    | LoadResults (taskId, (Ok results)) ->
+        { model with taskResults = Map.add taskId results model.taskResults }, Cmd.none
     | _ ->
         model, Cmd.none
 
@@ -114,12 +121,22 @@ let view model dispatch =
                             match task.``type``.key with
                             | TaskTypeKey.Label -> "Label"
 
+                        let downloadBtn =
+                            match Map.tryFind task.id model.taskResults with
+                            | Some results ->
+                                let json = Encode.toString 0 results
+                                let blob = Blob.Create([|json|])
+                                let url = URL.createObjectURL(blob)
+                                a [ Href url; Download "results.json" ] [ str "Download" ]
+                            | None ->
+                                button [ ClassName "button button--flat"; OnClick (fun evt -> dispatch (DownloadResults (dataset.id, task.id))) ] [ str "Request File" ]
+
                         tr []
                             [ td [] [str (task.id.ToString())]
                               td [] [str typeString ]
                               td [ ClassName "text--right" ]
                                  [ a [ Href (sprintf "/datasets/%d/tasks/%d" dataset.id task.id) ] [ str "Details" ]
-                                   button [ ClassName "button button--flat"; OnClick (fun evt -> dispatch (DownloadResults (dataset.id, task.id))) ] [ str "Download" ] ] ]
+                                   downloadBtn ] ]
 
                     let rows =
                         List.map row dataset.tasks.items

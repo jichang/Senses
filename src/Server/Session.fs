@@ -23,7 +23,7 @@ module Controller =
         |> Auth.generateJWT (jwtConfig.secret, SecurityAlgorithms.HmacSha256) jwtConfig.issuer (DateTime.UtcNow.AddHours(1.0))
 
     let indexAction (ctx: HttpContext) = task {
-                let sub = ctx.User.FindFirst ClaimTypes.NameIdentifier
+        let sub = ctx.User.FindFirst ClaimTypes.NameIdentifier
         match Decode.fromString User.Decoder sub.Value with
         | Ok user ->
             return! Controller.json ctx user
